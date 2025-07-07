@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, Waves, Globe, Users, Archive, Settings, Shield, Menu, X, Zap, BarChart3, User } from 'lucide-react';
+import { Brain, Waves, Globe, Users, Archive, Settings, Shield, Menu, X, Zap, BarChart3, User, LogOut } from 'lucide-react';
 import RateLab from './components/RateLab';
 import PlaceLab from './components/PlaceLab';
 import PopulationLab from './components/PopulationLab';
@@ -8,22 +8,65 @@ import NeuralArchive from './components/NeuralArchive';
 import NavigationPortal from './components/NavigationPortal';
 import SafetyDashboard from './components/SafetyDashboard';
 import MonroeResearchHub from './components/MonroeResearchHub';
-import CollaborationSync from './components/CollaborationSync';
 import FrequencyLab from './components/FrequencyLab';
 import AdvancedAnalytics from './components/AdvancedAnalytics';
-import UserProfile from './components/UserProfile';
+import SocialPlatform from './components/SocialPlatform';
+import AuthSystem from './components/AuthSystem';
 
-type ActiveLab = 'home' | 'rate' | 'place' | 'population' | 'monroe' | 'collaboration' | 'frequency' | 'analytics';
+type ActiveLab = 'home' | 'rate' | 'place' | 'population' | 'monroe' | 'frequency' | 'social';
+
+interface User {
+  id: string;
+  username: string;
+  email: string;
+  userID: string;
+  avatar: string;
+  bio: string;
+  deviceID: string;
+  isVerified: boolean;
+  joinDate: string;
+  followers: string[];
+  following: string[];
+  posts: any[];
+  presets: any[];
+}
 
 function App() {
   const [activeLab, setActiveLab] = useState<ActiveLab>('home');
   const [showArchive, setShowArchive] = useState(false);
   const [showSafety, setShowSafety] = useState(false);
-  const [showProfile, setShowProfile] = useState(false);
   const [sessionData, setSessionData] = useState<any>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
+    // Check for existing authentication
+    const savedUser = localStorage.getItem('neural-user');
+    const savedAuth = localStorage.getItem('neural-auth');
+    
+    if (savedUser && savedAuth) {
+      try {
+        const user = JSON.parse(savedUser);
+        const authData = JSON.parse(savedAuth);
+        
+        // Verify device ID matches
+        const currentDeviceID = generateDeviceID();
+        if (authData.deviceID === currentDeviceID && authData.expiresAt > Date.now()) {
+          setCurrentUser(user);
+          setIsAuthenticated(true);
+        } else {
+          // Clear invalid auth
+          localStorage.removeItem('neural-user');
+          localStorage.removeItem('neural-auth');
+        }
+      } catch (error) {
+        console.error('Auth verification failed:', error);
+        localStorage.removeItem('neural-user');
+        localStorage.removeItem('neural-auth');
+      }
+    }
+
     // Initialize audio context on user interaction
     const initAudioContext = () => {
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -36,7 +79,63 @@ function App() {
     return () => document.removeEventListener('click', initAudioContext);
   }, []);
 
+  const generateDeviceID = (): string => {
+    // Generate unique device fingerprint
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    ctx!.textBaseline = 'top';
+    ctx!.font = '14px Arial';
+    ctx!.fillText('Device fingerprint', 2, 2);
+    
+    const fingerprint = [
+      navigator.userAgent,
+      navigator.language,
+      screen.width + 'x' + screen.height,
+      new Date().getTimezoneOffset(),
+      canvas.toDataURL(),
+      navigator.hardwareConcurrency || 'unknown',
+      navigator.deviceMemory || 'unknown'
+    ].join('|');
+    
+    // Simple hash function
+    let hash = 0;
+    for (let i = 0; i < fingerprint.length; i++) {
+      const char = fingerprint.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    
+    return Math.abs(hash).toString(36);
+  };
+
+  const handleLogin = (user: User) => {
+    const deviceID = generateDeviceID();
+    const authData = {
+      deviceID,
+      loginTime: Date.now(),
+      expiresAt: Date.now() + (7 * 24 * 60 * 60 * 1000) // 7 days
+    };
+    
+    localStorage.setItem('neural-user', JSON.stringify(user));
+    localStorage.setItem('neural-auth', JSON.stringify(authData));
+    
+    setCurrentUser(user);
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('neural-user');
+    localStorage.removeItem('neural-auth');
+    setCurrentUser(null);
+    setIsAuthenticated(false);
+    setActiveLab('home');
+  };
+
   const renderActiveLab = () => {
+    if (!isAuthenticated) {
+      return <AuthSystem onLogin={handleLogin} />;
+    }
+
     switch (activeLab) {
       case 'rate':
         return <RateLab onSessionUpdate={setSessionData} />;
@@ -46,16 +145,25 @@ function App() {
         return <PopulationLab onSessionUpdate={setSessionData} />;
       case 'monroe':
         return <MonroeResearchHub />;
-      case 'collaboration':
-        return <CollaborationSync onSessionUpdate={setSessionData} />;
       case 'frequency':
         return <FrequencyLab onSessionUpdate={setSessionData} />;
-      case 'analytics':
-        return <AdvancedAnalytics />;
+      case 'social':
+        return <SocialPlatform currentUser={currentUser} onSessionUpdate={setSessionData} />;
       default:
-        return <HomePortal onLabSelect={setActiveLab} />;
+        return <HomePortal onLabSelect={setActiveLab} currentUser={currentUser} />;
     }
   };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white overflow-hidden">
+        <div className="fixed inset-0 opacity-20">
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-blue-500/10 animate-pulse"></div>
+        </div>
+        <AuthSystem onLogin={handleLogin} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white overflow-hidden">
@@ -70,6 +178,8 @@ function App() {
         onLabSelect={setActiveLab}
         isMobileMenuOpen={isMobileMenuOpen}
         setIsMobileMenuOpen={setIsMobileMenuOpen}
+        currentUser={currentUser}
+        onLogout={handleLogout}
       />
 
       {/* Neural Archive Panel */}
@@ -85,14 +195,7 @@ function App() {
         onToggle={() => setShowSafety(!showSafety)}
       />
 
-      {/* User Profile Modal */}
-      <AnimatePresence>
-        {showProfile && (
-          <UserProfile onClose={() => setShowProfile(false)} />
-        )}
-      </AnimatePresence>
-
-      {/* Main Content - Added top padding to account for fixed navigation */}
+      {/* Main Content */}
       <main className="relative z-10 pt-20 p-4 lg:p-6">
         <AnimatePresence mode="wait">
           <motion.div
@@ -108,54 +211,34 @@ function App() {
         </AnimatePresence>
       </main>
 
-      {/* Enhanced Control Buttons */}
-      <div className="fixed bottom-4 right-4 flex flex-col gap-2 z-40">
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setShowProfile(!showProfile)}
-          className="p-3 bg-blue-600 hover:bg-blue-700 rounded-full shadow-lg transition-colors"
-          title="User Profile"
-        >
-          <User className="w-6 h-6" />
-        </motion.button>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setActiveLab('analytics')}
-          className={`p-3 rounded-full shadow-lg transition-colors ${
-            activeLab === 'analytics' 
-              ? 'bg-purple-700 text-white' 
-              : 'bg-purple-600 hover:bg-purple-700'
-          }`}
-          title="Advanced Analytics"
-        >
-          <BarChart3 className="w-6 h-6" />
-        </motion.button>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setShowArchive(!showArchive)}
-          className="p-3 bg-purple-600 hover:bg-purple-700 rounded-full shadow-lg transition-colors"
-          title="Neural Archive"
-        >
-          <Archive className="w-6 h-6" />
-        </motion.button>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setShowSafety(!showSafety)}
-          className="p-3 bg-red-600 hover:bg-red-700 rounded-full shadow-lg transition-colors"
-          title="Safety Dashboard"
-        >
-          <Shield className="w-6 h-6" />
-        </motion.button>
-      </div>
+      {/* Enhanced Control Buttons - Only show for non-social pages */}
+      {activeLab !== 'social' && (
+        <div className="fixed bottom-4 right-4 flex flex-col gap-2 z-40">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowArchive(!showArchive)}
+            className="p-3 bg-purple-600 hover:bg-purple-700 rounded-full shadow-lg transition-colors"
+            title="Neural Archive"
+          >
+            <Archive className="w-6 h-6" />
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowSafety(!showSafety)}
+            className="p-3 bg-red-600 hover:bg-red-700 rounded-full shadow-lg transition-colors"
+            title="Safety Dashboard"
+          >
+            <Shield className="w-6 h-6" />
+          </motion.button>
+        </div>
+      )}
     </div>
   );
 }
 
-function HomePortal({ onLabSelect }: { onLabSelect: (lab: ActiveLab) => void }) {
+function HomePortal({ onLabSelect, currentUser }: { onLabSelect: (lab: ActiveLab) => void, currentUser: User | null }) {
   const labs = [
     {
       id: 'rate' as ActiveLab,
@@ -191,27 +274,19 @@ function HomePortal({ onLabSelect }: { onLabSelect: (lab: ActiveLab) => void }) 
     },
     {
       id: 'frequency' as ActiveLab,
-      title: 'Frequency Laboratory',
+      title: 'Advanced Frequency Laboratory',
       description: 'Advanced multi-method brainwave entrainment with real-time monitoring',
       icon: Zap,
       color: 'from-cyan-500 to-blue-500',
       features: ['Multi-Method', 'Real-time Monitor', 'Custom Configs', 'Background Sounds']
     },
     {
-      id: 'collaboration' as ActiveLab,
-      title: 'Collaboration Sync',
-      description: 'Real-time consciousness exploration with global community',
+      id: 'social' as ActiveLab,
+      title: 'Collaboration Sync - Consciousness Network',
+      description: 'Connect, share knowledge, and collaborate with consciousness explorers worldwide',
       icon: Users,
-      color: 'from-indigo-500 to-purple-500',
-      features: ['Live Chat', 'Session Sharing', 'Voice Collaboration', 'Preset Exchange']
-    },
-    {
-      id: 'analytics' as ActiveLab,
-      title: 'Advanced Analytics',
-      description: 'Deep insights into your consciousness exploration journey',
-      icon: BarChart3,
-      color: 'from-purple-500 to-pink-500',
-      features: ['Progress Tracking', 'AI Insights', 'Achievement System', 'Performance Metrics']
+      color: 'from-pink-500 to-rose-500',
+      features: ['Social Profiles', 'Real-time Chat', 'Knowledge Sharing', 'Random Connect']
     }
   ];
 
@@ -227,7 +302,8 @@ function HomePortal({ onLabSelect }: { onLabSelect: (lab: ActiveLab) => void }) 
           Neural Code Platform
         </h1>
         <p className="text-lg lg:text-xl text-gray-300 max-w-2xl mx-auto px-4">
-          Explore consciousness through audio-visual neural interfaces based on Robert Monroe's research
+          Welcome back, <span className="text-purple-400 font-semibold">@{currentUser?.userID}</span>! 
+          Explore consciousness through audio-visual neural interfaces and connect with fellow researchers.
         </p>
         <div className="mt-6 flex items-center justify-center gap-4 text-sm text-gray-400">
           <div className="flex items-center gap-2">
@@ -236,7 +312,7 @@ function HomePortal({ onLabSelect }: { onLabSelect: (lab: ActiveLab) => void }) 
           </div>
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-            <span>Real-time Collaboration</span>
+            <span>Social Network</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
@@ -279,13 +355,13 @@ function HomePortal({ onLabSelect }: { onLabSelect: (lab: ActiveLab) => void }) 
         className="mt-8 lg:mt-12 text-center px-4"
       >
         <p className="text-gray-400 text-sm lg:text-base mb-4">
-          "We're not just building an app - we're creating the Python REPL for consciousness exploration."
+          "We're not just building an app - we're creating the social network for consciousness exploration."
         </p>
         <div className="flex flex-wrap justify-center gap-4 text-xs text-gray-500">
           <span>• Real-time Brainwave Entrainment</span>
           <span>• 3D Spatial Audio Processing</span>
           <span>• AI-Powered Session Analysis</span>
-          <span>• Global Collaboration Network</span>
+          <span>• Global Social Network</span>
           <span>• Advanced Safety Protocols</span>
         </div>
       </motion.div>

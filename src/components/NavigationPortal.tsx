@@ -1,21 +1,25 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, Waves, Globe, Users, Brain, Link, Menu, X, Zap, BarChart3 } from 'lucide-react';
+import { Home, Waves, Globe, Users, Brain, Menu, X, Zap, LogOut, User } from 'lucide-react';
 
-type ActiveLab = 'home' | 'rate' | 'place' | 'population' | 'monroe' | 'collaboration' | 'frequency' | 'analytics';
+type ActiveLab = 'home' | 'rate' | 'place' | 'population' | 'monroe' | 'frequency' | 'social';
 
 interface NavigationPortalProps {
   activeLab: ActiveLab;
   onLabSelect: (lab: ActiveLab) => void;
   isMobileMenuOpen: boolean;
   setIsMobileMenuOpen: (open: boolean) => void;
+  currentUser: any;
+  onLogout: () => void;
 }
 
 const NavigationPortal: React.FC<NavigationPortalProps> = ({ 
   activeLab, 
   onLabSelect, 
   isMobileMenuOpen, 
-  setIsMobileMenuOpen 
+  setIsMobileMenuOpen,
+  currentUser,
+  onLogout
 }) => {
   const navItems = [
     { id: 'home' as ActiveLab, icon: Home, label: 'Home', color: 'from-purple-500 to-pink-500' },
@@ -24,8 +28,7 @@ const NavigationPortal: React.FC<NavigationPortalProps> = ({
     { id: 'population' as ActiveLab, icon: Users, label: 'Population Lab', color: 'from-purple-500 to-pink-500' },
     { id: 'monroe' as ActiveLab, icon: Brain, label: 'Monroe Hub', color: 'from-orange-500 to-red-500' },
     { id: 'frequency' as ActiveLab, icon: Zap, label: 'Frequency Lab', color: 'from-cyan-500 to-blue-500' },
-    { id: 'collaboration' as ActiveLab, icon: Link, label: 'Sync', color: 'from-indigo-500 to-purple-500' },
-    { id: 'analytics' as ActiveLab, icon: BarChart3, label: 'Analytics', color: 'from-purple-500 to-pink-500' }
+    { id: 'social' as ActiveLab, icon: Users, label: 'Social Network', color: 'from-pink-500 to-rose-500' }
   ];
 
   const handleNavClick = (lab: ActiveLab) => {
@@ -35,7 +38,7 @@ const NavigationPortal: React.FC<NavigationPortalProps> = ({
 
   return (
     <>
-      {/* Fixed Top Navigation Bar with higher z-index */}
+      {/* Fixed Top Navigation Bar */}
       <div className="fixed top-0 left-0 right-0 z-[100] bg-gray-900/98 backdrop-blur-lg border-b border-gray-700/50 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 lg:px-6">
           <div className="flex items-center justify-between h-16">
@@ -83,31 +86,40 @@ const NavigationPortal: React.FC<NavigationPortalProps> = ({
               ))}
             </motion.div>
 
-            {/* Current Lab Label */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3, delay: 0.2 }}
-              className="hidden lg:flex items-center gap-2 px-4 py-2 bg-gray-800/80 backdrop-blur-sm rounded-lg border border-gray-600/50 shadow-md"
-            >
-              <div className="w-2 h-2 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full animate-pulse" />
-              <span className="text-sm font-medium text-gray-200">
-                {navItems.find(item => item.id === activeLab)?.label}
-              </span>
-            </motion.div>
-
-            {/* Mobile Lab Label */}
-            <div className="lg:hidden flex items-center gap-2 px-3 py-1.5 bg-gray-800/80 backdrop-blur-sm rounded-lg border border-gray-600/50 shadow-md">
-              <div className="w-1.5 h-1.5 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full animate-pulse" />
-              <span className="text-xs font-medium text-gray-200">
-                {navItems.find(item => item.id === activeLab)?.label}
-              </span>
+            {/* User Info & Logout */}
+            <div className="flex items-center gap-3">
+              {currentUser && (
+                <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-gray-800/80 backdrop-blur-sm rounded-lg border border-gray-600/50 shadow-md">
+                  <div className="w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center text-sm">
+                    {currentUser.avatar || currentUser.username.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-sm font-medium text-gray-200">@{currentUser.userID}</span>
+                </div>
+              )}
+              
+              <button
+                onClick={onLogout}
+                className="p-2 bg-red-600/80 hover:bg-red-700/80 rounded-lg transition-colors shadow-md"
+                title="Logout"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
             </div>
+
+            {/* Mobile User Info */}
+            {currentUser && (
+              <div className="lg:hidden flex items-center gap-2 px-3 py-1.5 bg-gray-800/80 backdrop-blur-sm rounded-lg border border-gray-600/50 shadow-md">
+                <div className="w-5 h-5 bg-purple-600 rounded-full flex items-center justify-center text-xs">
+                  {currentUser.avatar || currentUser.username.charAt(0).toUpperCase()}
+                </div>
+                <span className="text-xs font-medium text-gray-200">@{currentUser.userID}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Mobile Navigation Overlay with proper z-index */}
+      {/* Mobile Navigation Overlay */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <>
@@ -131,6 +143,19 @@ const NavigationPortal: React.FC<NavigationPortalProps> = ({
                     Neural Labs
                   </h2>
                   <p className="text-xs text-gray-400 mt-1">Consciousness Exploration Platform</p>
+                  {currentUser && (
+                    <div className="mt-3 p-3 bg-gray-800/50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center">
+                          {currentUser.avatar || currentUser.username.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="text-left">
+                          <div className="font-medium text-sm">{currentUser.username}</div>
+                          <div className="text-xs text-gray-400">@{currentUser.userID}</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="space-y-3">
@@ -177,13 +202,27 @@ const NavigationPortal: React.FC<NavigationPortalProps> = ({
                   ))}
                 </div>
                 
+                {/* Logout Button */}
+                <div className="mt-6">
+                  <button
+                    onClick={() => {
+                      onLogout();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 p-3 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 rounded-lg transition-all duration-300"
+                  >
+                    <LogOut className="w-5 h-5 text-red-400" />
+                    <span className="text-red-400 font-medium">Logout</span>
+                  </button>
+                </div>
+                
                 {/* Footer info */}
                 <div className="mt-6 p-3 bg-gray-800/30 rounded-lg border border-gray-600/30">
                   <p className="text-xs text-gray-400 text-center">
                     Neural Code Platform v2.0
                   </p>
                   <p className="text-xs text-gray-500 text-center mt-0.5">
-                    Production-Ready Consciousness Platform
+                    Social Consciousness Network
                   </p>
                 </div>
               </div>
