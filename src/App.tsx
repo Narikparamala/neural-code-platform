@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, Waves, Globe, Users, Archive, Settings, Shield, Menu, X, Zap } from 'lucide-react';
+import { Brain, Waves, Globe, Users, Archive, Settings, Shield, Menu, X, Zap, BarChart3, User } from 'lucide-react';
 import RateLab from './components/RateLab';
 import PlaceLab from './components/PlaceLab';
 import PopulationLab from './components/PopulationLab';
@@ -10,13 +10,16 @@ import SafetyDashboard from './components/SafetyDashboard';
 import MonroeResearchHub from './components/MonroeResearchHub';
 import CollaborationSync from './components/CollaborationSync';
 import FrequencyLab from './components/FrequencyLab';
+import AdvancedAnalytics from './components/AdvancedAnalytics';
+import UserProfile from './components/UserProfile';
 
-type ActiveLab = 'home' | 'rate' | 'place' | 'population' | 'monroe' | 'collaboration' | 'frequency';
+type ActiveLab = 'home' | 'rate' | 'place' | 'population' | 'monroe' | 'collaboration' | 'frequency' | 'analytics';
 
 function App() {
   const [activeLab, setActiveLab] = useState<ActiveLab>('home');
   const [showArchive, setShowArchive] = useState(false);
   const [showSafety, setShowSafety] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const [sessionData, setSessionData] = useState<any>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -44,9 +47,11 @@ function App() {
       case 'monroe':
         return <MonroeResearchHub />;
       case 'collaboration':
-        return <CollaborationSync />;
+        return <CollaborationSync onSessionUpdate={setSessionData} />;
       case 'frequency':
         return <FrequencyLab onSessionUpdate={setSessionData} />;
+      case 'analytics':
+        return <AdvancedAnalytics />;
       default:
         return <HomePortal onLabSelect={setActiveLab} />;
     }
@@ -59,7 +64,7 @@ function App() {
         <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-blue-500/10 animate-pulse"></div>
       </div>
 
-      {/* Navigation Portal */}
+      {/* Enhanced Navigation Portal */}
       <NavigationPortal 
         activeLab={activeLab} 
         onLabSelect={setActiveLab}
@@ -80,6 +85,13 @@ function App() {
         onToggle={() => setShowSafety(!showSafety)}
       />
 
+      {/* User Profile Modal */}
+      <AnimatePresence>
+        {showProfile && (
+          <UserProfile onClose={() => setShowProfile(false)} />
+        )}
+      </AnimatePresence>
+
       {/* Main Content - Added top padding to account for fixed navigation */}
       <main className="relative z-10 pt-20 p-4 lg:p-6">
         <AnimatePresence mode="wait">
@@ -96,8 +108,30 @@ function App() {
         </AnimatePresence>
       </main>
 
-      {/* Control Buttons */}
+      {/* Enhanced Control Buttons */}
       <div className="fixed bottom-4 right-4 flex flex-col gap-2 z-40">
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setShowProfile(!showProfile)}
+          className="p-3 bg-blue-600 hover:bg-blue-700 rounded-full shadow-lg transition-colors"
+          title="User Profile"
+        >
+          <User className="w-6 h-6" />
+        </motion.button>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setActiveLab('analytics')}
+          className={`p-3 rounded-full shadow-lg transition-colors ${
+            activeLab === 'analytics' 
+              ? 'bg-purple-700 text-white' 
+              : 'bg-purple-600 hover:bg-purple-700'
+          }`}
+          title="Advanced Analytics"
+        >
+          <BarChart3 className="w-6 h-6" />
+        </motion.button>
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
@@ -162,6 +196,22 @@ function HomePortal({ onLabSelect }: { onLabSelect: (lab: ActiveLab) => void }) 
       icon: Zap,
       color: 'from-cyan-500 to-blue-500',
       features: ['Multi-Method', 'Real-time Monitor', 'Custom Configs', 'Background Sounds']
+    },
+    {
+      id: 'collaboration' as ActiveLab,
+      title: 'Collaboration Sync',
+      description: 'Real-time consciousness exploration with global community',
+      icon: Users,
+      color: 'from-indigo-500 to-purple-500',
+      features: ['Live Chat', 'Session Sharing', 'Voice Collaboration', 'Preset Exchange']
+    },
+    {
+      id: 'analytics' as ActiveLab,
+      title: 'Advanced Analytics',
+      description: 'Deep insights into your consciousness exploration journey',
+      icon: BarChart3,
+      color: 'from-purple-500 to-pink-500',
+      features: ['Progress Tracking', 'AI Insights', 'Achievement System', 'Performance Metrics']
     }
   ];
 
@@ -179,6 +229,20 @@ function HomePortal({ onLabSelect }: { onLabSelect: (lab: ActiveLab) => void }) 
         <p className="text-lg lg:text-xl text-gray-300 max-w-2xl mx-auto px-4">
           Explore consciousness through audio-visual neural interfaces based on Robert Monroe's research
         </p>
+        <div className="mt-6 flex items-center justify-center gap-4 text-sm text-gray-400">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+            <span>Production Ready</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+            <span>Real-time Collaboration</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+            <span>AI-Powered Analytics</span>
+          </div>
+        </div>
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8 max-w-7xl w-full px-4">
@@ -188,9 +252,9 @@ function HomePortal({ onLabSelect }: { onLabSelect: (lab: ActiveLab) => void }) 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: index * 0.1 }}
-            whileHover={{ scale: 1.02 }}
+            whileHover={{ scale: 1.02, y: -5 }}
             onClick={() => onLabSelect(lab.id)}
-            className={`p-6 lg:p-8 rounded-xl bg-gradient-to-br ${lab.color} opacity-90 hover:opacity-100 transition-all cursor-pointer shadow-2xl`}
+            className={`p-6 lg:p-8 rounded-xl bg-gradient-to-br ${lab.color} opacity-90 hover:opacity-100 transition-all cursor-pointer shadow-2xl hover:shadow-3xl`}
           >
             <div className="flex items-center mb-4">
               <lab.icon className="w-8 h-8 mr-3" />
@@ -199,7 +263,7 @@ function HomePortal({ onLabSelect }: { onLabSelect: (lab: ActiveLab) => void }) 
             <p className="text-white/90 mb-4 text-sm lg:text-base">{lab.description}</p>
             <div className="grid grid-cols-2 gap-2">
               {lab.features.map((feature, i) => (
-                <div key={i} className="text-xs lg:text-sm bg-white/20 rounded-lg px-2 py-1 text-center">
+                <div key={i} className="text-xs lg:text-sm bg-white/20 rounded-lg px-2 py-1 text-center backdrop-blur-sm">
                   {feature}
                 </div>
               ))}
@@ -214,9 +278,16 @@ function HomePortal({ onLabSelect }: { onLabSelect: (lab: ActiveLab) => void }) 
         transition={{ duration: 0.6, delay: 0.8 }}
         className="mt-8 lg:mt-12 text-center px-4"
       >
-        <p className="text-gray-400 text-sm lg:text-base">
+        <p className="text-gray-400 text-sm lg:text-base mb-4">
           "We're not just building an app - we're creating the Python REPL for consciousness exploration."
         </p>
+        <div className="flex flex-wrap justify-center gap-4 text-xs text-gray-500">
+          <span>• Real-time Brainwave Entrainment</span>
+          <span>• 3D Spatial Audio Processing</span>
+          <span>• AI-Powered Session Analysis</span>
+          <span>• Global Collaboration Network</span>
+          <span>• Advanced Safety Protocols</span>
+        </div>
       </motion.div>
     </div>
   );

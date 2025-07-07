@@ -1,8 +1,8 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, Waves, Globe, Users, Brain, Link, Menu, X, Zap } from 'lucide-react';
+import { Home, Waves, Globe, Users, Brain, Link, Menu, X, Zap, BarChart3 } from 'lucide-react';
 
-type ActiveLab = 'home' | 'rate' | 'place' | 'population' | 'monroe' | 'collaboration' | 'frequency';
+type ActiveLab = 'home' | 'rate' | 'place' | 'population' | 'monroe' | 'collaboration' | 'frequency' | 'analytics';
 
 interface NavigationPortalProps {
   activeLab: ActiveLab;
@@ -24,7 +24,8 @@ const NavigationPortal: React.FC<NavigationPortalProps> = ({
     { id: 'population' as ActiveLab, icon: Users, label: 'Population Lab', color: 'from-purple-500 to-pink-500' },
     { id: 'monroe' as ActiveLab, icon: Brain, label: 'Monroe Hub', color: 'from-orange-500 to-red-500' },
     { id: 'frequency' as ActiveLab, icon: Zap, label: 'Frequency Lab', color: 'from-cyan-500 to-blue-500' },
-    { id: 'collaboration' as ActiveLab, icon: Link, label: 'Sync', color: 'from-indigo-500 to-purple-500' }
+    { id: 'collaboration' as ActiveLab, icon: Link, label: 'Sync', color: 'from-indigo-500 to-purple-500' },
+    { id: 'analytics' as ActiveLab, icon: BarChart3, label: 'Analytics', color: 'from-purple-500 to-pink-500' }
   ];
 
   const handleNavClick = (lab: ActiveLab) => {
@@ -179,10 +180,10 @@ const NavigationPortal: React.FC<NavigationPortalProps> = ({
                 {/* Footer info */}
                 <div className="mt-6 p-3 bg-gray-800/30 rounded-lg border border-gray-600/30">
                   <p className="text-xs text-gray-400 text-center">
-                    Neural Code Platform v1.0
+                    Neural Code Platform v2.0
                   </p>
                   <p className="text-xs text-gray-500 text-center mt-0.5">
-                    Based on Robert Monroe's Research
+                    Production-Ready Consciousness Platform
                   </p>
                 </div>
               </div>
