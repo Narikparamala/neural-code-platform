@@ -1,173 +1,82 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
+const { createClient } = require('@supabase/supabase-js');
 const { body, validationResult } = require('express-validator');
-const User = require('../models/User');
-const auth = require('../middleware/auth');
 
 const router = express.Router();
 
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY // must be Service Role for admin ops
+);
+
 // Register
 router.post('/register', [
-  body('username')
-    .isLength({ min: 3, max: 30 })
-    .withMessage('Username must be between 3 and 30 characters')
-    .matches(/^[a-zA-Z0-9_]+$/)
-    .withMessage('Username can only contain letters, numbers, and underscores'),
-  body('email')
-    .isEmail()
-    .withMessage('Please provide a valid email'),
-  body('password')
-    .isLength({ min: 6 })
-    .withMessage('Password must be at least 6 characters long')
+  body('username').isLength({ min: 3, max: 30 }).withMessage('Username 3–30 chars'),
+  body('email').isEmail().withMessage('Valid email required'),
+  body('password').isLength({ min: 6 }).withMessage('Password min 6 chars'),
 ], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+  const { email, password, username, expertise } = req.body;
+
+  // sign up
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { username, expertise: expertise || [] }
     }
+  });
 
-    const { username, email, password, expertise } = req.body;
-
-    // Check if user already exists
-    const existingUser = await User.findOne({
-      $or: [{ email }, { username }]
-    });
-
-    if (existingUser) {
-      return res.status(400).json({
-        message: 'User with this email or username already exists'
-      });
-    }
-
-    // Create new user
-    const user = new User({
-      username,
-      email,
-      password,
-      expertise: expertise || []
-    });
-
-    await user.save();
-
-    // Generate JWT token
-    const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET || 'consciousness-sync-secret',
-      { expiresIn: '7d' }
-    );
-
-    res.status(201).json({
-      message: 'User created successfully',
-      token,
-      user: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        avatar: user.avatar,
-        expertise: user.expertise
-      }
-    });
-  } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({ message: 'Server error during registration' });
+  if (error) {
+    console.error('Supabase signUp error:', error);
+    return res.status(400).json({ message: error.message });
   }
+
+  res.status(201).json({
+    message: 'User registered successfully',
+    user: data.user
+  });
 });
 
 // Login
 router.post('/login', [
-  body('email').isEmail().withMessage('Please provide a valid email'),
-  body('password').notEmpty().withMessage('Password is required')
+  body('email').isEmail().withMessage('Valid email required'),
+  body('password').notEmpty().withMessage('Password required'),
 ], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-    const { email, password } = req.body;
+  const { email, password } = req.body;
 
-    // Find user by email
-    const user = await User.findOne({ email }).select('+password');
-    if (!user) {
-      return res.status(400).json({ message: 'Invalid credentials' });
-    }
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-    // Check password
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid credentials' });
-    }
-
-    // Update last active
-    user.lastActive = new Date();
-    await user.save();
-
-    // Generate JWT token
-    const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET || 'consciousness-sync-secret',
-      { expiresIn: '7d' }
-    );
-
-    res.json({
-      message: 'Login successful',
-      token,
-      user: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        avatar: user.avatar,
-        expertise: user.expertise,
-        bio: user.bio,
-        reputation: user.reputation,
-        isVerified: user.isVerified
-      }
-    });
-  } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ message: 'Server error during login' });
+  if (error) {
+    console.error('Supabase signIn error:', error);
+    return res.status(400).json({ message: 'Invalid credentials' });
   }
+
+  res.json({
+    message: 'Login successful',
+    user: data.user,
+    session: data.session // includes access_token
+  });
 });
 
-// Get current user
-router.get('/me', auth, async (req, res) => {
-  try {
-    const user = await User.findById(req.userId)
-      .populate('followers', 'username avatar')
-      .populate('following', 'username avatar')
-      .populate('posts')
-      .populate('presets');
+// Get current user (you must pass token from frontend)
+router.get('/me', async (req, res) => {
+  const token = req.header('Authorization')?.replace('Bearer ', '');
+  if (!token) return res.status(401).json({ message: 'Missing token' });
 
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
+  const { data, error } = await supabase.auth.getUser(token);
 
-    res.json({ user });
-  } catch (error) {
+  if (error) {
     console.error('Get user error:', error);
-    res.status(500).json({ message: 'Server error' });
+    return res.status(401).json({ message: 'Invalid token' });
   }
-});
 
-// Refresh token
-router.post('/refresh', auth, async (req, res) => {
-  try {
-    const user = await User.findById(req.userId);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET || 'consciousness-sync-secret',
-      { expiresIn: '7d' }
-    );
-
-    res.json({ token });
-  } catch (error) {
-    console.error('Token refresh error:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
+  res.json({ user: data.user });
 });
 
 module.exports = router;
