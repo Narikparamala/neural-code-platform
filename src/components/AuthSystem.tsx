@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Brain, Mail, Lock, User, Shield, Eye, EyeOff, CheckCircle, AlertCircle, Timer } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 interface AuthSystemProps {
   onLogin: (user: any) => void;
@@ -32,10 +33,14 @@ const AuthSystem: React.FC<AuthSystemProps> = ({ onLogin }) => {
   const [otpCode, setOtpCode] = useState('');
   const [otpTimer, setOtpTimer] = useState(120);
   const [deviceID, setDeviceID] = useState('');
+  const [pendingEmail, setPendingEmail] = useState('');
 
   useEffect(() => {
     // Generate device ID on component mount
     setDeviceID(generateDeviceID());
+    
+    // Check for existing session
+    checkExistingSession();
   }, []);
 
   useEffect(() => {
@@ -47,6 +52,26 @@ const AuthSystem: React.FC<AuthSystemProps> = ({ onLogin }) => {
     }
     return () => clearInterval(interval);
   }, [showOTP, otpTimer]);
+
+  const checkExistingSession = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        // Get user profile
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('auth_user_id', session.user.id)
+          .single();
+        
+        if (profile) {
+          onLogin(profile);
+        }
+      }
+    } catch (error) {
+      console.error('Session check error:', error);
+    }
+  };
 
   const generateDeviceID = (): string => {
     // Generate unique device fingerprint
@@ -99,62 +124,46 @@ const AuthSystem: React.FC<AuthSystemProps> = ({ onLogin }) => {
     return newErrors.length === 0;
   };
 
-  const checkExistingAccount = (email: string, userID: string, deviceID: string): boolean => {
-    const existingUsers = JSON.parse(localStorage.getItem('neural-users') || '[]');
-    
-    // Check for existing email
-    const emailExists = existingUsers.some((user: any) => user.email === email);
-    if (emailExists) {
-      setErrors(['An account with this email already exists']);
-      return false;
-    }
+  const checkExistingAccount = async (email: string, userID: string, deviceID: string): Promise<boolean> => {
+    try {
+      // Check for existing email in auth.users
+      const { data: authUsers } = await supabase.auth.admin.listUsers();
+      const emailExists = authUsers.users.some(user => user.email === email);
+      
+      if (emailExists) {
+        setErrors(['An account with this email already exists']);
+        return false;
+      }
 
-    // Check for existing userID
-    const userIDExists = existingUsers.some((user: any) => user.userID === userID);
-    if (userIDExists) {
-      setErrors(['This User ID is already taken']);
-      return false;
-    }
+      // Check for existing userID
+      const { data: userIDExists } = await supabase
+        .from('user_profiles')
+        .select('id')
+        .eq('user_id', userID)
+        .single();
+      
+      if (userIDExists) {
+        setErrors(['This User ID is already taken']);
+        return false;
+      }
 
-    // Check for existing device ID
-    const deviceExists = existingUsers.some((user: any) => user.deviceID === deviceID);
-    if (deviceExists) {
-      setErrors(['An account already exists on this device']);
-      return false;
-    }
+      // Check for existing device ID
+      const { data: deviceExists } = await supabase
+        .from('user_profiles')
+        .select('id')
+        .eq('device_id', deviceID)
+        .single();
+      
+      if (deviceExists) {
+        setErrors(['An account already exists on this device']);
+        return false;
+      }
 
-    return true;
-  };
-
-  const sendOTP = async (): Promise<string> => {
-    // Simulate OTP generation and sending
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    
-    // In a real app, this would send email via backend
-    console.log('OTP sent to', formData.email, ':', otp);
-    
-    // Store OTP temporarily (in real app, this would be server-side)
-    sessionStorage.setItem('neural-otp', otp);
-    sessionStorage.setItem('neural-otp-expires', (Date.now() + 120000).toString()); // 2 minutes
-    
-    return otp;
-  };
-
-  const verifyOTP = (): boolean => {
-    const storedOTP = sessionStorage.getItem('neural-otp');
-    const expiresAt = parseInt(sessionStorage.getItem('neural-otp-expires') || '0');
-    
-    if (!storedOTP || Date.now() > expiresAt) {
-      setErrors(['OTP has expired. Please try again.']);
-      return false;
+      return true;
+    } catch (error) {
+      // If no records found, that's good for registration
+      return true;
     }
-    
-    if (otpCode !== storedOTP) {
-      setErrors(['Invalid OTP code']);
-      return false;
-    }
-    
-    return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -167,80 +176,156 @@ const AuthSystem: React.FC<AuthSystemProps> = ({ onLogin }) => {
 
     try {
       if (isLogin) {
-        // Login logic
-        const existingUsers = JSON.parse(localStorage.getItem('neural-users') || '[]');
-        const user = existingUsers.find((u: any) => 
-          u.email === formData.email && u.deviceID === deviceID
-        );
+        // Login with Supabase
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: formData.email,
+          password: formData.password
+        });
         
-        if (!user) {
-          setErrors(['Invalid credentials or device not recognized']);
+        if (error) {
+          setErrors([error.message]);
           setIsLoading(false);
           return;
         }
-        
-        // In a real app, you'd verify password hash
-        if (user.password !== formData.password) {
-          setErrors(['Invalid credentials']);
-          setIsLoading(false);
-          return;
+
+        if (data.user) {
+          // Get user profile and check device ID
+          const { data: profile, error: profileError } = await supabase
+            .from('user_profiles')
+            .select('*')
+            .eq('auth_user_id', data.user.id)
+            .single();
+          
+          if (profileError || !profile) {
+            setErrors(['Profile not found']);
+            setIsLoading(false);
+            return;
+          }
+
+          // Check device ID for security
+          if (profile.device_id !== deviceID) {
+            setErrors(['Device not recognized. Please use the device you registered with.']);
+            await supabase.auth.signOut();
+            setIsLoading(false);
+            return;
+          }
+          
+          onLogin(profile);
         }
-        
-        // Successful login
-        onLogin(user);
       } else {
-        // Registration logic
-        if (!checkExistingAccount(formData.email, formData.userID, deviceID)) {
+        // Registration - check constraints first
+        if (!(await checkExistingAccount(formData.email, formData.userID, deviceID))) {
           setIsLoading(false);
           return;
         }
         
-        // Send OTP
-        await sendOTP();
-        setShowOTP(true);
-        setOtpTimer(120);
+        // Sign up with Supabase (this will send email confirmation)
+        const { data, error } = await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+          options: {
+            emailRedirectTo: window.location.origin
+          }
+        });
+        
+        if (error) {
+          setErrors([error.message]);
+          setIsLoading(false);
+          return;
+        }
+
+        if (data.user) {
+          setPendingEmail(formData.email);
+          setShowOTP(true);
+          setOtpTimer(120);
+        }
       }
-    } catch (error) {
-      setErrors(['An error occurred. Please try again.']);
+    } catch (error: any) {
+      setErrors([error.message || 'An error occurred. Please try again.']);
     }
     
     setIsLoading(false);
   };
 
-  const handleOTPSubmit = (e: React.FormEvent) => {
+  const handleOTPSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!verifyOTP()) return;
-    
-    // Create new user
-    const newUser = {
-      id: Date.now().toString(),
-      username: formData.username,
-      email: formData.email,
-      password: formData.password, // In real app, this would be hashed
-      userID: formData.userID,
-      bio: formData.bio || 'Consciousness explorer and neural researcher',
-      avatar: '🧠',
-      deviceID,
-      isVerified: true,
-      joinDate: new Date().toISOString(),
-      followers: [],
-      following: [],
-      posts: [],
-      presets: []
-    };
-    
-    // Save to localStorage (in real app, this would be backend)
-    const existingUsers = JSON.parse(localStorage.getItem('neural-users') || '[]');
-    existingUsers.push(newUser);
-    localStorage.setItem('neural-users', JSON.stringify(existingUsers));
-    
-    // Clear OTP data
-    sessionStorage.removeItem('neural-otp');
-    sessionStorage.removeItem('neural-otp-expires');
-    
-    // Login the user
-    onLogin(newUser);
+    if (!otpCode.trim()) {
+      setErrors(['Please enter the OTP code']);
+      return;
+    }
+
+    setIsLoading(true);
+    setErrors([]);
+
+    try {
+      // Verify OTP with Supabase
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: pendingEmail,
+        token: otpCode,
+        type: 'signup'
+      });
+
+      if (error) {
+        setErrors([error.message]);
+        setIsLoading(false);
+        return;
+      }
+
+      if (data.user) {
+        // Create user profile
+        const { error: profileError } = await supabase
+          .from('user_profiles')
+          .insert({
+            auth_user_id: data.user.id,
+            username: formData.username,
+            user_id: formData.userID,
+            bio: formData.bio || 'Consciousness explorer and neural researcher',
+            device_id: deviceID,
+            is_verified: true
+          });
+
+        if (profileError) {
+          setErrors([profileError.message]);
+          setIsLoading(false);
+          return;
+        }
+
+        // Get the created profile
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('auth_user_id', data.user.id)
+          .single();
+
+        if (profile) {
+          onLogin(profile);
+        }
+      }
+    } catch (error: any) {
+      setErrors([error.message || 'OTP verification failed']);
+    }
+
+    setIsLoading(false);
+  };
+
+  const resendOTP = async () => {
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: pendingEmail
+      });
+
+      if (error) {
+        setErrors([error.message]);
+      } else {
+        setOtpTimer(120);
+        setOtpCode('');
+        setErrors([]);
+      }
+    } catch (error: any) {
+      setErrors([error.message || 'Failed to resend OTP']);
+    }
   };
 
   const formatTime = (seconds: number) => {
@@ -293,18 +378,18 @@ const AuthSystem: React.FC<AuthSystemProps> = ({ onLogin }) => {
               >
                 <h2 className="text-xl font-bold mb-4 text-center">Verify Your Email</h2>
                 <p className="text-gray-400 text-sm text-center mb-6">
-                  We've sent a 6-digit code to <span className="text-purple-400">{formData.email}</span>
+                  We've sent a verification code to <span className="text-purple-400">{pendingEmail}</span>
                 </p>
                 
                 <form onSubmit={handleOTPSubmit} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2">OTP Code</label>
+                    <label className="block text-sm font-medium mb-2">Verification Code</label>
                     <input
                       type="text"
                       value={otpCode}
-                      onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      onChange={(e) => setOtpCode(e.target.value)}
                       className="w-full px-4 py-3 bg-gray-700 rounded-lg text-white text-center text-2xl tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      placeholder="000000"
+                      placeholder="Enter code"
                       maxLength={6}
                     />
                   </div>
@@ -318,24 +403,24 @@ const AuthSystem: React.FC<AuthSystemProps> = ({ onLogin }) => {
                     <div className="text-center">
                       <button
                         type="button"
-                        onClick={() => {
-                          sendOTP();
-                          setOtpTimer(120);
-                          setOtpCode('');
-                        }}
+                        onClick={resendOTP}
                         className="text-purple-400 hover:text-purple-300 text-sm"
                       >
-                        Resend OTP
+                        Resend Code
                       </button>
                     </div>
                   )}
                   
                   <button
                     type="submit"
-                    disabled={otpCode.length !== 6 || otpTimer === 0}
-                    className="w-full py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 rounded-lg font-medium transition-colors"
+                    disabled={!otpCode.trim() || otpTimer === 0 || isLoading}
+                    className="w-full py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                   >
-                    Verify & Create Account
+                    {isLoading ? (
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    ) : (
+                      'Verify & Create Account'
+                    )}
                   </button>
                   
                   <button
@@ -344,6 +429,7 @@ const AuthSystem: React.FC<AuthSystemProps> = ({ onLogin }) => {
                       setShowOTP(false);
                       setOtpCode('');
                       setOtpTimer(120);
+                      setPendingEmail('');
                     }}
                     className="w-full py-2 text-gray-400 hover:text-white text-sm"
                   >
