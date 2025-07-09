@@ -12,24 +12,9 @@ import FrequencyLab from './components/FrequencyLab';
 import AdvancedAnalytics from './components/AdvancedAnalytics';
 import SocialPlatform from './components/SocialPlatform';
 import AuthSystem from './components/AuthSystem';
+import { SupabaseService, UserProfile } from './lib/supabase';
 
 type ActiveLab = 'home' | 'rate' | 'place' | 'population' | 'monroe' | 'frequency' | 'social';
-
-interface User {
-  id: string;
-  username: string;
-  email: string;
-  userID: string;
-  avatar: string;
-  bio: string;
-  deviceID: string;
-  isVerified: boolean;
-  joinDate: string;
-  followers: string[];
-  following: string[];
-  posts: any[];
-  presets: any[];
-}
 
 function App() {
   const [activeLab, setActiveLab] = useState<ActiveLab>('home');
@@ -37,35 +22,13 @@ function App() {
   const [showSafety, setShowSafety] = useState(false);
   const [sessionData, setSessionData] = useState<any>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Check for existing authentication
-    const savedUser = localStorage.getItem('neural-user');
-    const savedAuth = localStorage.getItem('neural-auth');
-    
-    if (savedUser && savedAuth) {
-      try {
-        const user = JSON.parse(savedUser);
-        const authData = JSON.parse(savedAuth);
-        
-        // Verify device ID matches
-        const currentDeviceID = generateDeviceID();
-        if (authData.deviceID === currentDeviceID && authData.expiresAt > Date.now()) {
-          setCurrentUser(user);
-          setIsAuthenticated(true);
-        } else {
-          // Clear invalid auth
-          localStorage.removeItem('neural-user');
-          localStorage.removeItem('neural-auth');
-        }
-      } catch (error) {
-        console.error('Auth verification failed:', error);
-        localStorage.removeItem('neural-user');
-        localStorage.removeItem('neural-auth');
-      }
-    }
+    checkAuthStatus();
 
     // Initialize audio context on user interaction
     const initAudioContext = () => {
@@ -79,60 +42,37 @@ function App() {
     return () => document.removeEventListener('click', initAudioContext);
   }, []);
 
-  const generateDeviceID = (): string => {
-    // Generate unique device fingerprint
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    ctx!.textBaseline = 'top';
-    ctx!.font = '14px Arial';
-    ctx!.fillText('Device fingerprint', 2, 2);
-    
-    const fingerprint = [
-      navigator.userAgent,
-      navigator.language,
-      screen.width + 'x' + screen.height,
-      new Date().getTimezoneOffset(),
-      canvas.toDataURL(),
-      navigator.hardwareConcurrency || 'unknown',
-      navigator.deviceMemory || 'unknown'
-    ].join('|');
-    
-    // Simple hash function
-    let hash = 0;
-    for (let i = 0; i < fingerprint.length; i++) {
-      const char = fingerprint.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32-bit integer
+  const checkAuthStatus = async () => {
+    try {
+      const { data } = await SupabaseService.getCurrentUser();
+      if (data?.profile) {
+        setCurrentUser(data.profile);
+        setIsAuthenticated(true);
+      }
+    } catch (error) {
+      console.error('Auth check failed:', error);
     }
-    
-    return Math.abs(hash).toString(36);
+    setIsLoading(false);
   };
 
-  const handleLogin = (user: User) => {
-    const deviceID = generateDeviceID();
-    const authData = {
-      deviceID,
-      loginTime: Date.now(),
-      expiresAt: Date.now() + (7 * 24 * 60 * 60 * 1000) // 7 days
-    };
-    
-    localStorage.setItem('neural-user', JSON.stringify(user));
-    localStorage.setItem('neural-auth', JSON.stringify(authData));
-    
+  const handleLogin = (user: UserProfile) => {
     setCurrentUser(user);
     setIsAuthenticated(true);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('neural-user');
-    localStorage.removeItem('neural-auth');
-    setCurrentUser(null);
-    setIsAuthenticated(false);
-    setActiveLab('home');
+  const handleLogout = async () => {
+    try {
+      await SupabaseService.signOut();
+      setCurrentUser(null);
+      setIsAuthenticated(false);
+      setActiveLab('home');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
   };
 
   const renderActiveLab = () => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !currentUser) {
       return <AuthSystem onLogin={handleLogin} />;
     }
 
@@ -153,6 +93,17 @@ function App() {
         return <HomePortal onLabSelect={setActiveLab} currentUser={currentUser} />;
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading Neural Code Platform...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return (
@@ -238,7 +189,7 @@ function App() {
   );
 }
 
-function HomePortal({ onLabSelect, currentUser }: { onLabSelect: (lab: ActiveLab) => void, currentUser: User | null }) {
+function HomePortal({ onLabSelect, currentUser }: { onLabSelect: (lab: ActiveLab) => void, currentUser: UserProfile | null }) {
   const labs = [
     {
       id: 'rate' as ActiveLab,
@@ -302,7 +253,7 @@ function HomePortal({ onLabSelect, currentUser }: { onLabSelect: (lab: ActiveLab
           Neural Code Platform
         </h1>
         <p className="text-lg lg:text-xl text-gray-300 max-w-2xl mx-auto px-4">
-          Welcome back, <span className="text-purple-400 font-semibold">@{currentUser?.userID}</span>! 
+          Welcome back, <span className="text-purple-400 font-semibold">@{currentUser?.user_id}</span>! 
           Explore consciousness through audio-visual neural interfaces and connect with fellow researchers.
         </p>
         <div className="mt-6 flex items-center justify-center gap-4 text-sm text-gray-400">

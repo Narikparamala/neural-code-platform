@@ -6,80 +6,11 @@ import {
   Headphones, Brain, Zap, Globe, MoreHorizontal, UserPlus,
   Hash, TrendingUp, Clock, Star, Award, Target, BarChart3
 } from 'lucide-react';
-import io, { Socket } from 'socket.io-client';
+import { SupabaseService, UserProfile, Post, ChatMessage, Notification } from '../lib/supabase';
 
 interface SocialPlatformProps {
-  currentUser: any;
+  currentUser: UserProfile;
   onSessionUpdate?: (data: any) => void;
-}
-
-interface Post {
-  id: string;
-  author: {
-    id: string;
-    username: string;
-    userID: string;
-    avatar: string;
-    isVerified: boolean;
-  };
-  content: string;
-  type: 'text' | 'preset' | 'research' | 'image';
-  media?: string[];
-  preset?: {
-    name: string;
-    frequency: number;
-    carrier: number;
-    description: string;
-  };
-  tags: string[];
-  likes: string[];
-  comments: Comment[];
-  shares: number;
-  timestamp: number;
-}
-
-interface Comment {
-  id: string;
-  author: {
-    id: string;
-    username: string;
-    userID: string;
-    avatar: string;
-  };
-  content: string;
-  timestamp: number;
-  likes: string[];
-}
-
-interface ChatMessage {
-  id: string;
-  senderId: string;
-  senderUsername: string;
-  senderUserID: string;
-  content: string;
-  timestamp: number;
-  type: 'text' | 'preset';
-  preset?: any;
-}
-
-interface UserProfile {
-  id: string;
-  username: string;
-  userID: string;
-  avatar: string;
-  bio: string;
-  isVerified: boolean;
-  joinDate: string;
-  followers: string[];
-  following: string[];
-  posts: Post[];
-  presets: any[];
-  stats: {
-    totalSessions: number;
-    totalTime: number;
-    favoriteFrequency: number;
-    level: number;
-  };
 }
 
 const SocialPlatform: React.FC<SocialPlatformProps> = ({ currentUser, onSessionUpdate }) => {
@@ -91,26 +22,24 @@ const SocialPlatform: React.FC<SocialPlatformProps> = ({ currentUser, onSessionU
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<UserProfile[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<UserProfile[]>([]);
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [newPost, setNewPost] = useState({ content: '', type: 'text', tags: [] });
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileForm, setProfileForm] = useState({ username: '', bio: '' });
   const [randomChatUser, setRandomChatUser] = useState<UserProfile | null>(null);
   const [isSearchingRandom, setIsSearchingRandom] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const socketRef = useRef<Socket | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const messagesSubscription = useRef<any>(null);
+  const notificationsSubscription = useRef<any>(null);
+  const postsSubscription = useRef<any>(null);
 
-  // Initialize socket connection and load data
+  // Initialize data and subscriptions
   useEffect(() => {
-    // Initialize socket (simulated for demo)
-    // socketRef.current = io('http://localhost:5000');
-    
-    // Load initial data
-    loadPosts();
-    loadOnlineUsers();
-    loadNotifications();
+    loadInitialData();
+    setupSubscriptions();
     
     // Set profile form data
     if (currentUser) {
@@ -120,24 +49,11 @@ const SocialPlatform: React.FC<SocialPlatformProps> = ({ currentUser, onSessionU
       });
     }
 
-    // Simulate real-time updates
-    const interval = setInterval(() => {
-      // Simulate new notifications
-      if (Math.random() > 0.8) {
-        addNotification({
-          id: Date.now().toString(),
-          type: 'like',
-          message: 'Someone liked your post',
-          timestamp: Date.now()
-        });
-      }
-    }, 30000);
-
     return () => {
-      clearInterval(interval);
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-      }
+      // Cleanup subscriptions
+      if (messagesSubscription.current) messagesSubscription.current.unsubscribe();
+      if (notificationsSubscription.current) notificationsSubscription.current.unsubscribe();
+      if (postsSubscription.current) postsSubscription.current.unsubscribe();
     };
   }, [currentUser]);
 
@@ -156,229 +72,151 @@ const SocialPlatform: React.FC<SocialPlatformProps> = ({ currentUser, onSessionU
       postsCount: posts.length,
       onlineUsers: onlineUsers.length,
       notifications: notifications.length,
-      currentChat: selectedUser?.userID || null
+      currentChat: selectedUser?.user_id || null
     });
   }, [activeTab, posts, onlineUsers, notifications, selectedUser, onSessionUpdate]);
 
-  const loadPosts = () => {
-    // Load posts from localStorage or generate mock data
-    const savedPosts = localStorage.getItem('neural-social-posts');
-    if (savedPosts) {
-      setPosts(JSON.parse(savedPosts));
-    } else {
-      // Generate mock posts
-      const mockPosts: Post[] = [
-        {
-          id: '1',
-          author: {
-            id: 'user1',
-            username: 'Dr. Consciousness',
-            userID: 'dr_consciousness',
-            avatar: '🧠',
-            isVerified: true
-          },
-          content: 'Just discovered an amazing correlation between 40Hz gamma waves and enhanced creativity! The neural synchronization patterns are fascinating. Anyone else experimenting with gamma entrainment?',
-          type: 'research',
-          tags: ['gamma', 'creativity', 'research', 'neuroscience'],
-          likes: ['user2', 'user3'],
-          comments: [],
-          shares: 5,
-          timestamp: Date.now() - 3600000
-        },
-        {
-          id: '2',
-          author: {
-            id: 'user2',
-            username: 'Frequency Explorer',
-            userID: 'freq_explorer',
-            avatar: '🎵',
-            isVerified: false
-          },
-          content: 'Sharing my latest alpha wave preset for deep meditation. This configuration has helped me achieve incredible states of relaxation and awareness.',
-          type: 'preset',
-          preset: {
-            name: 'Deep Alpha Meditation',
-            frequency: 10,
-            carrier: 200,
-            description: 'Perfect for meditation and relaxation'
-          },
-          tags: ['alpha', 'meditation', 'preset'],
-          likes: ['user1'],
-          comments: [],
-          shares: 3,
-          timestamp: Date.now() - 7200000
+  const loadInitialData = async () => {
+    setIsLoading(true);
+    try {
+      // Load posts
+      const { data: postsData } = await SupabaseService.getPosts(20);
+      if (postsData) setPosts(postsData);
+
+      // Load notifications
+      const { data: notificationsData } = await SupabaseService.getNotifications(currentUser.id);
+      if (notificationsData) setNotifications(notificationsData);
+
+      // Simulate online users (in real app, this would be from presence)
+      const { data: usersData } = await SupabaseService.searchUsers('', 10);
+      if (usersData) setOnlineUsers(usersData.filter(u => u.id !== currentUser.id));
+
+    } catch (error) {
+      console.error('Error loading initial data:', error);
+    }
+    setIsLoading(false);
+  };
+
+  const setupSubscriptions = () => {
+    // Subscribe to new messages
+    messagesSubscription.current = SupabaseService.subscribeToMessages(
+      currentUser.id,
+      (message) => {
+        if (selectedUser && 
+            (message.sender_id === selectedUser.id || message.receiver_id === selectedUser.id)) {
+          setChatMessages(prev => [...prev, message]);
         }
-      ];
-      setPosts(mockPosts);
-      localStorage.setItem('neural-social-posts', JSON.stringify(mockPosts));
-    }
-  };
-
-  const loadOnlineUsers = () => {
-    // Simulate online users
-    const mockUsers: UserProfile[] = [
-      {
-        id: 'user1',
-        username: 'Dr. Consciousness',
-        userID: 'dr_consciousness',
-        avatar: '🧠',
-        bio: 'Neuroscientist researching consciousness and brainwave entrainment',
-        isVerified: true,
-        joinDate: '2024-01-01',
-        followers: ['user2', 'user3'],
-        following: ['user2'],
-        posts: [],
-        presets: [],
-        stats: { totalSessions: 150, totalTime: 45000, favoriteFrequency: 40, level: 12 }
-      },
-      {
-        id: 'user2',
-        username: 'Frequency Explorer',
-        userID: 'freq_explorer',
-        avatar: '🎵',
-        bio: 'Sound healing practitioner and frequency researcher',
-        isVerified: false,
-        joinDate: '2024-01-15',
-        followers: ['user1'],
-        following: ['user1', 'user3'],
-        posts: [],
-        presets: [],
-        stats: { totalSessions: 89, totalTime: 28000, favoriteFrequency: 10, level: 8 }
-      },
-      {
-        id: 'user3',
-        username: 'Theta Dreamer',
-        userID: 'theta_dreamer',
-        avatar: '🌙',
-        bio: 'Lucid dreaming enthusiast and theta wave specialist',
-        isVerified: false,
-        joinDate: '2024-02-01',
-        followers: [],
-        following: ['user1', 'user2'],
-        posts: [],
-        presets: [],
-        stats: { totalSessions: 67, totalTime: 22000, favoriteFrequency: 6, level: 6 }
       }
-    ];
-    setOnlineUsers(mockUsers);
-  };
+    );
 
-  const loadNotifications = () => {
-    const savedNotifications = localStorage.getItem('neural-notifications');
-    if (savedNotifications) {
-      setNotifications(JSON.parse(savedNotifications));
-    }
-  };
+    // Subscribe to notifications
+    notificationsSubscription.current = SupabaseService.subscribeToNotifications(
+      currentUser.id,
+      (notification) => {
+        setNotifications(prev => [notification, ...prev]);
+      }
+    );
 
-  const addNotification = (notification: any) => {
-    setNotifications(prev => {
-      const updated = [notification, ...prev].slice(0, 50); // Keep last 50
-      localStorage.setItem('neural-notifications', JSON.stringify(updated));
-      return updated;
+    // Subscribe to new posts
+    postsSubscription.current = SupabaseService.subscribeToNewPosts((post) => {
+      setPosts(prev => [post, ...prev]);
     });
   };
 
-  const createPost = () => {
+  const createPost = async () => {
     if (!newPost.content.trim()) return;
 
-    const post: Post = {
-      id: Date.now().toString(),
-      author: {
-        id: currentUser.id,
-        username: currentUser.username,
-        userID: currentUser.userID,
-        avatar: currentUser.avatar,
-        isVerified: currentUser.isVerified || false
-      },
-      content: newPost.content,
-      type: newPost.type as any,
-      tags: newPost.tags,
-      likes: [],
-      comments: [],
-      shares: 0,
-      timestamp: Date.now()
-    };
+    try {
+      const { data } = await SupabaseService.createPost(currentUser.id, {
+        content: newPost.content,
+        type: newPost.type as any,
+        tags: newPost.tags,
+        media: [],
+        preset: newPost.type === 'preset' ? {
+          name: 'Sample Preset',
+          frequency: 10,
+          carrier: 200,
+          description: 'Sample description'
+        } : undefined
+      });
 
-    const updatedPosts = [post, ...posts];
-    setPosts(updatedPosts);
-    localStorage.setItem('neural-social-posts', JSON.stringify(updatedPosts));
-    
-    setNewPost({ content: '', type: 'text', tags: [] });
-    setShowCreatePost(false);
-  };
-
-  const likePost = (postId: string) => {
-    const updatedPosts = posts.map(post => {
-      if (post.id === postId) {
-        const isLiked = post.likes.includes(currentUser.id);
-        return {
-          ...post,
-          likes: isLiked 
-            ? post.likes.filter(id => id !== currentUser.id)
-            : [...post.likes, currentUser.id]
-        };
+      if (data) {
+        setPosts(prev => [data, ...prev]);
+        setNewPost({ content: '', type: 'text', tags: [] });
+        setShowCreatePost(false);
       }
-      return post;
-    });
-    setPosts(updatedPosts);
-    localStorage.setItem('neural-social-posts', JSON.stringify(updatedPosts));
+    } catch (error) {
+      console.error('Error creating post:', error);
+    }
   };
 
-  const searchUsers = (query: string) => {
+  const likePost = async (postId: string) => {
+    try {
+      const { data } = await SupabaseService.likePost(postId, currentUser.id);
+      if (data) {
+        setPosts(prev => prev.map(post => 
+          post.id === postId ? { ...post, likes: data.likes } : post
+        ));
+      }
+    } catch (error) {
+      console.error('Error liking post:', error);
+    }
+  };
+
+  const searchUsers = async (query: string) => {
     if (!query.trim()) {
       setSearchResults([]);
       return;
     }
 
-    const results = onlineUsers.filter(user => 
-      user.username.toLowerCase().includes(query.toLowerCase()) ||
-      user.userID.toLowerCase().includes(query.toLowerCase()) ||
-      user.bio.toLowerCase().includes(query.toLowerCase())
-    );
-    setSearchResults(results);
-  };
-
-  const startChat = (user: UserProfile) => {
-    setSelectedUser(user);
-    setActiveTab('chat');
-    // Load chat history
-    const chatKey = `chat_${[currentUser.id, user.id].sort().join('_')}`;
-    const savedChat = localStorage.getItem(chatKey);
-    if (savedChat) {
-      setChatMessages(JSON.parse(savedChat));
-    } else {
-      setChatMessages([]);
+    try {
+      const { data } = await SupabaseService.searchUsers(query);
+      if (data) {
+        setSearchResults(data.filter(user => user.id !== currentUser.id));
+      }
+    } catch (error) {
+      console.error('Error searching users:', error);
     }
   };
 
-  const sendMessage = () => {
-    if (!newMessage.trim() || !selectedUser) return;
-
-    const message: ChatMessage = {
-      id: Date.now().toString(),
-      senderId: currentUser.id,
-      senderUsername: currentUser.username,
-      senderUserID: currentUser.userID,
-      content: newMessage,
-      timestamp: Date.now(),
-      type: 'text'
-    };
-
-    const updatedMessages = [...chatMessages, message];
-    setChatMessages(updatedMessages);
+  const startChat = async (user: UserProfile) => {
+    setSelectedUser(user);
+    setActiveTab('chat');
     
-    // Save to localStorage
-    const chatKey = `chat_${[currentUser.id, selectedUser.id].sort().join('_')}`;
-    localStorage.setItem(chatKey, JSON.stringify(updatedMessages));
-    
-    setNewMessage('');
+    try {
+      const { data } = await SupabaseService.getMessages(currentUser.id, user.id);
+      if (data) {
+        setChatMessages(data);
+      }
+    } catch (error) {
+      console.error('Error loading messages:', error);
+    }
   };
 
-  const findRandomUser = () => {
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !selectedUser) return;
+
+    try {
+      const { data } = await SupabaseService.sendMessage(
+        currentUser.id,
+        selectedUser.id,
+        newMessage
+      );
+
+      if (data) {
+        setChatMessages(prev => [...prev, data]);
+        setNewMessage('');
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+    }
+  };
+
+  const findRandomUser = async () => {
     setIsSearchingRandom(true);
     
-    // Simulate search delay
-    setTimeout(() => {
+    try {
+      // Get random user from online users
       const availableUsers = onlineUsers.filter(user => 
         user.id !== currentUser.id && 
         !currentUser.following?.includes(user.id)
@@ -390,34 +228,26 @@ const SocialPlatform: React.FC<SocialPlatformProps> = ({ currentUser, onSessionU
       } else {
         setRandomChatUser(null);
       }
-      setIsSearchingRandom(false);
-    }, 2000);
+    } catch (error) {
+      console.error('Error finding random user:', error);
+    }
+    
+    setIsSearchingRandom(false);
   };
 
-  const followUser = (userId: string) => {
-    // Update following list
-    const updatedUser = {
-      ...currentUser,
-      following: currentUser.following?.includes(userId)
-        ? currentUser.following.filter((id: string) => id !== userId)
-        : [...(currentUser.following || []), userId]
-    };
-    
-    // Save to localStorage
-    localStorage.setItem('neural-user', JSON.stringify(updatedUser));
-    
-    // Add notification to target user
-    addNotification({
-      id: Date.now().toString(),
-      type: 'follow',
-      message: `@${currentUser.userID} started following you`,
-      timestamp: Date.now()
-    });
+  const followUser = async (userId: string) => {
+    try {
+      await SupabaseService.followUser(currentUser.id, userId);
+      // Update local state or refetch data as needed
+    } catch (error) {
+      console.error('Error following user:', error);
+    }
   };
 
-  const formatTime = (timestamp: number) => {
-    const now = Date.now();
-    const diff = now - timestamp;
+  const formatTime = (timestamp: string) => {
+    const now = new Date();
+    const time = new Date(timestamp);
+    const diff = now.getTime() - time.getTime();
     
     if (diff < 60000) return 'now';
     if (diff < 3600000) return `${Math.floor(diff / 60000)}m`;
@@ -459,96 +289,107 @@ const SocialPlatform: React.FC<SocialPlatformProps> = ({ currentUser, onSessionU
 
       {/* Posts Feed */}
       <div className="space-y-6">
-        {posts.map(post => (
-          <motion.div
-            key={post.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-gray-800/50 rounded-xl p-6 border border-gray-700"
-          >
-            {/* Post Header */}
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center">
-                  {post.author.avatar}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{post.author.username}</span>
-                    {post.author.isVerified && <Star className="w-4 h-4 text-yellow-400" />}
+        {isLoading ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400 mx-auto"></div>
+            <p className="text-gray-400 mt-2">Loading posts...</p>
+          </div>
+        ) : posts.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-gray-400">No posts yet. Be the first to share!</p>
+          </div>
+        ) : (
+          posts.map(post => (
+            <motion.div
+              key={post.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-gray-800/50 rounded-xl p-6 border border-gray-700"
+            >
+              {/* Post Header */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center">
+                    {post.author?.avatar || post.author?.username.charAt(0).toUpperCase()}
                   </div>
-                  <div className="text-sm text-gray-400">@{post.author.userID} • {formatTime(post.timestamp)}</div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{post.author?.username}</span>
+                      {post.author?.is_verified && <Star className="w-4 h-4 text-yellow-400" />}
+                    </div>
+                    <div className="text-sm text-gray-400">@{post.author?.user_id} • {formatTime(post.created_at)}</div>
+                  </div>
                 </div>
+                <button className="p-2 hover:bg-gray-700 rounded-lg transition-colors">
+                  <MoreHorizontal className="w-5 h-5" />
+                </button>
               </div>
-              <button className="p-2 hover:bg-gray-700 rounded-lg transition-colors">
-                <MoreHorizontal className="w-5 h-5" />
-              </button>
-            </div>
 
-            {/* Post Content */}
-            <div className="mb-4">
-              <p className="text-gray-200 mb-3">{post.content}</p>
-              
-              {/* Preset Display */}
-              {post.type === 'preset' && post.preset && (
-                <div className="p-4 bg-gray-700/50 rounded-lg border border-gray-600">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Headphones className="w-5 h-5 text-purple-400" />
-                    <span className="font-medium">{post.preset.name}</span>
+              {/* Post Content */}
+              <div className="mb-4">
+                <p className="text-gray-200 mb-3">{post.content}</p>
+                
+                {/* Preset Display */}
+                {post.type === 'preset' && post.preset && (
+                  <div className="p-4 bg-gray-700/50 rounded-lg border border-gray-600">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Headphones className="w-5 h-5 text-purple-400" />
+                      <span className="font-medium">{post.preset.name}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-400">Frequency:</span>
+                        <span className={`ml-2 font-mono ${getBrainwaveColor(post.preset.frequency)}`}>
+                          {post.preset.frequency}Hz
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-400">Carrier:</span>
+                        <span className="ml-2 font-mono">{post.preset.carrier}Hz</span>
+                      </div>
+                    </div>
+                    <p className="text-gray-400 text-sm mt-2">{post.preset.description}</p>
+                    <button className="mt-3 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm transition-colors">
+                      Try Preset
+                    </button>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-gray-400">Frequency:</span>
-                      <span className={`ml-2 font-mono ${getBrainwaveColor(post.preset.frequency)}`}>
-                        {post.preset.frequency}Hz
+                )}
+
+                {/* Tags */}
+                {post.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {post.tags.map(tag => (
+                      <span key={tag} className="px-2 py-1 bg-blue-600/20 text-blue-400 rounded text-sm">
+                        #{tag}
                       </span>
-                    </div>
-                    <div>
-                      <span className="text-gray-400">Carrier:</span>
-                      <span className="ml-2 font-mono">{post.preset.carrier}Hz</span>
-                    </div>
+                    ))}
                   </div>
-                  <p className="text-gray-400 text-sm mt-2">{post.preset.description}</p>
-                  <button className="mt-3 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm transition-colors">
-                    Try Preset
-                  </button>
-                </div>
-              )}
+                )}
+              </div>
 
-              {/* Tags */}
-              {post.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {post.tags.map(tag => (
-                    <span key={tag} className="px-2 py-1 bg-blue-600/20 text-blue-400 rounded text-sm">
-                      #{tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Post Actions */}
-            <div className="flex items-center gap-6 pt-3 border-t border-gray-700">
-              <button
-                onClick={() => likePost(post.id)}
-                className={`flex items-center gap-2 transition-colors ${
-                  post.likes.includes(currentUser.id) ? 'text-red-400' : 'text-gray-400 hover:text-red-400'
-                }`}
-              >
-                <Heart className={`w-5 h-5 ${post.likes.includes(currentUser.id) ? 'fill-current' : ''}`} />
-                <span>{post.likes.length}</span>
-              </button>
-              <button className="flex items-center gap-2 text-gray-400 hover:text-blue-400 transition-colors">
-                <MessageCircle className="w-5 h-5" />
-                <span>{post.comments.length}</span>
-              </button>
-              <button className="flex items-center gap-2 text-gray-400 hover:text-green-400 transition-colors">
-                <Share2 className="w-5 h-5" />
-                <span>{post.shares}</span>
-              </button>
-            </div>
-          </motion.div>
-        ))}
+              {/* Post Actions */}
+              <div className="flex items-center gap-6 pt-3 border-t border-gray-700">
+                <button
+                  onClick={() => likePost(post.id)}
+                  className={`flex items-center gap-2 transition-colors ${
+                    post.likes.includes(currentUser.id) ? 'text-red-400' : 'text-gray-400 hover:text-red-400'
+                  }`}
+                >
+                  <Heart className={`w-5 h-5 ${post.likes.includes(currentUser.id) ? 'fill-current' : ''}`} />
+                  <span>{post.likes.length}</span>
+                </button>
+                <button className="flex items-center gap-2 text-gray-400 hover:text-blue-400 transition-colors">
+                  <MessageCircle className="w-5 h-5" />
+                  <span>{post.comments.length}</span>
+                </button>
+                <button className="flex items-center gap-2 text-gray-400 hover:text-green-400 transition-colors">
+                  <Share2 className="w-5 h-5" />
+                  <span>{post.shares}</span>
+                </button>
+              </div>
+            </motion.div>
+          ))
+        )}
       </div>
     </div>
   );
@@ -565,9 +406,9 @@ const SocialPlatform: React.FC<SocialPlatformProps> = ({ currentUser, onSessionU
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <h2 className="text-2xl font-bold">{currentUser.username}</h2>
-                {currentUser.isVerified && <Star className="w-5 h-5 text-yellow-400" />}
+                {currentUser.is_verified && <Star className="w-5 h-5 text-yellow-400" />}
               </div>
-              <p className="text-gray-400">@{currentUser.userID}</p>
+              <p className="text-gray-400">@{currentUser.user_id}</p>
               <p className="text-gray-300 mt-2">{currentUser.bio}</p>
             </div>
           </div>
@@ -582,7 +423,7 @@ const SocialPlatform: React.FC<SocialPlatformProps> = ({ currentUser, onSessionU
         {/* Profile Stats */}
         <div className="grid grid-cols-3 gap-6 pt-6 border-t border-gray-700">
           <div className="text-center">
-            <div className="text-2xl font-bold text-purple-400">{currentUser.posts?.length || 0}</div>
+            <div className="text-2xl font-bold text-purple-400">{posts.filter(p => p.author_id === currentUser.id).length}</div>
             <div className="text-gray-400 text-sm">Posts</div>
           </div>
           <div className="text-center">
@@ -605,19 +446,19 @@ const SocialPlatform: React.FC<SocialPlatformProps> = ({ currentUser, onSessionU
         
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="p-4 bg-gray-700/50 rounded-lg">
-            <div className="text-2xl font-bold text-blue-400">47</div>
+            <div className="text-2xl font-bold text-blue-400">{currentUser.stats?.totalSessions || 0}</div>
             <div className="text-sm text-gray-400">Total Sessions</div>
           </div>
           <div className="p-4 bg-gray-700/50 rounded-lg">
-            <div className="text-2xl font-bold text-green-400">28h</div>
+            <div className="text-2xl font-bold text-green-400">{Math.floor((currentUser.stats?.totalTime || 0) / 3600)}h</div>
             <div className="text-sm text-gray-400">Total Time</div>
           </div>
           <div className="p-4 bg-gray-700/50 rounded-lg">
-            <div className="text-2xl font-bold text-yellow-400">10Hz</div>
+            <div className="text-2xl font-bold text-yellow-400">{currentUser.stats?.favoriteFrequency || 10}Hz</div>
             <div className="text-sm text-gray-400">Favorite Freq</div>
           </div>
           <div className="p-4 bg-gray-700/50 rounded-lg">
-            <div className="text-2xl font-bold text-purple-400">Level 8</div>
+            <div className="text-2xl font-bold text-purple-400">Level {currentUser.stats?.level || 1}</div>
             <div className="text-sm text-gray-400">Experience</div>
           </div>
         </div>
@@ -626,15 +467,15 @@ const SocialPlatform: React.FC<SocialPlatformProps> = ({ currentUser, onSessionU
       {/* Recent Posts */}
       <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
         <h3 className="text-xl font-bold mb-4">Your Recent Posts</h3>
-        {posts.filter(post => post.author.id === currentUser.id).length === 0 ? (
+        {posts.filter(post => post.author_id === currentUser.id).length === 0 ? (
           <p className="text-gray-400 text-center py-8">No posts yet. Share your first insight!</p>
         ) : (
           <div className="space-y-4">
-            {posts.filter(post => post.author.id === currentUser.id).slice(0, 3).map(post => (
+            {posts.filter(post => post.author_id === currentUser.id).slice(0, 3).map(post => (
               <div key={post.id} className="p-4 bg-gray-700/50 rounded-lg">
                 <p className="text-gray-200 mb-2">{post.content}</p>
                 <div className="flex items-center gap-4 text-sm text-gray-400">
-                  <span>{formatTime(post.timestamp)}</span>
+                  <span>{formatTime(post.created_at)}</span>
                   <span>{post.likes.length} likes</span>
                   <span>{post.comments.length} comments</span>
                 </div>
@@ -691,7 +532,7 @@ const SocialPlatform: React.FC<SocialPlatformProps> = ({ currentUser, onSessionU
                 </div>
                 <div>
                   <div className="font-medium">{randomChatUser.username}</div>
-                  <div className="text-xs text-gray-400">@{randomChatUser.userID}</div>
+                  <div className="text-xs text-gray-400">@{randomChatUser.user_id}</div>
                 </div>
               </div>
               <button
@@ -700,12 +541,6 @@ const SocialPlatform: React.FC<SocialPlatformProps> = ({ currentUser, onSessionU
               >
                 Start Chat
               </button>
-            </div>
-          )}
-
-          {!isSearchingRandom && !randomChatUser && searchQuery === '' && (
-            <div className="text-center text-gray-400 text-sm py-4">
-              Search for users or try random chat
             </div>
           )}
         </div>
@@ -726,7 +561,7 @@ const SocialPlatform: React.FC<SocialPlatformProps> = ({ currentUser, onSessionU
                     </div>
                     <div className="flex-1">
                       <div className="font-medium">{user.username}</div>
-                      <div className="text-sm text-gray-400">@{user.userID}</div>
+                      <div className="text-sm text-gray-400">@{user.user_id}</div>
                     </div>
                   </button>
                 ))}
@@ -751,7 +586,7 @@ const SocialPlatform: React.FC<SocialPlatformProps> = ({ currentUser, onSessionU
                   </div>
                   <div className="flex-1">
                     <div className="font-medium">{user.username}</div>
-                    <div className="text-sm text-gray-400">@{user.userID}</div>
+                    <div className="text-sm text-gray-400">@{user.user_id}</div>
                   </div>
                 </button>
               ))}
@@ -772,7 +607,7 @@ const SocialPlatform: React.FC<SocialPlatformProps> = ({ currentUser, onSessionU
                 </div>
                 <div>
                   <div className="font-medium">{selectedUser.username}</div>
-                  <div className="text-sm text-gray-400">@{selectedUser.userID}</div>
+                  <div className="text-sm text-gray-400">@{selectedUser.user_id}</div>
                 </div>
               </div>
               <button
@@ -789,25 +624,25 @@ const SocialPlatform: React.FC<SocialPlatformProps> = ({ currentUser, onSessionU
               {chatMessages.length === 0 ? (
                 <div className="text-center text-gray-400 py-8">
                   <MessageCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>Start a conversation with @{selectedUser.userID}</p>
+                  <p>Start a conversation with @{selectedUser.user_id}</p>
                   <p className="text-sm mt-2">Share your consciousness insights and learn together!</p>
                 </div>
               ) : (
                 chatMessages.map(message => (
                   <div
                     key={message.id}
-                    className={`flex ${message.senderId === currentUser.id ? 'justify-end' : 'justify-start'}`}
+                    className={`flex ${message.sender_id === currentUser.id ? 'justify-end' : 'justify-start'}`}
                   >
                     <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                      message.senderId === currentUser.id
+                      message.sender_id === currentUser.id
                         ? 'bg-purple-600 text-white'
                         : 'bg-gray-700 text-gray-200'
                     }`}>
                       <p>{message.content}</p>
                       <div className={`text-xs mt-1 ${
-                        message.senderId === currentUser.id ? 'text-purple-200' : 'text-gray-400'
+                        message.sender_id === currentUser.id ? 'text-purple-200' : 'text-gray-400'
                       }`}>
-                        {formatTime(message.timestamp)}
+                        {formatTime(message.created_at)}
                       </div>
                     </div>
                   </div>
@@ -882,13 +717,13 @@ const SocialPlatform: React.FC<SocialPlatformProps> = ({ currentUser, onSessionU
                 </div>
                 <div>
                   <div className="font-medium">{user.username}</div>
-                  <div className="text-sm text-gray-400">@{user.userID}</div>
+                  <div className="text-sm text-gray-400">@{user.user_id}</div>
                 </div>
               </div>
               <p className="text-gray-300 text-sm mb-3">{user.bio}</p>
               <div className="flex items-center justify-between">
                 <div className="text-sm text-gray-400">
-                  Level {user.stats.level} • {user.stats.totalSessions} sessions
+                  Level {user.stats?.level || 1} • {user.stats?.totalSessions || 0} sessions
                 </div>
                 <button
                   onClick={() => startChat(user)}
@@ -1159,15 +994,16 @@ const SocialPlatform: React.FC<SocialPlatformProps> = ({ currentUser, onSessionU
                     Cancel
                   </button>
                   <button
-                    onClick={() => {
-                      // Update user profile
-                      const updatedUser = {
-                        ...currentUser,
-                        username: profileForm.username,
-                        bio: profileForm.bio
-                      };
-                      localStorage.setItem('neural-user', JSON.stringify(updatedUser));
-                      setIsEditingProfile(false);
+                    onClick={async () => {
+                      try {
+                        await SupabaseService.updateUserProfile(currentUser.id, {
+                          username: profileForm.username,
+                          bio: profileForm.bio
+                        });
+                        setIsEditingProfile(false);
+                      } catch (error) {
+                        console.error('Error updating profile:', error);
+                      }
                     }}
                     className="flex-1 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors"
                   >
