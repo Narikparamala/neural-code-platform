@@ -153,7 +153,7 @@ export class SupabaseService {
           .from('user_profiles')
           .select('*')
           .eq('auth_user_id', data.user.id)
-          .single();
+          .maybeSingle();
 
         if (profileError) throw profileError;
 
@@ -181,7 +181,7 @@ export class SupabaseService {
           .from('user_profiles')
           .select('*')
           .eq('auth_user_id', user.id)
-          .single();
+          .maybeSingle();
 
         if (profileError) throw profileError;
 
@@ -201,7 +201,7 @@ export class SupabaseService {
         .from('user_profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return { data, error: null };
@@ -217,7 +217,7 @@ export class SupabaseService {
         .update(updates)
         .eq('id', userId)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return { data, error: null };
@@ -248,7 +248,7 @@ export class SupabaseService {
         .from('user_profiles')
         .select('following')
         .eq('id', followerId)
-        .single();
+        .maybeSingle();
 
       if (followerError) throw followerError;
 
@@ -257,7 +257,7 @@ export class SupabaseService {
         .from('user_profiles')
         .select('followers')
         .eq('id', followingId)
-        .single();
+        .maybeSingle();
 
       if (followingError) throw followingError;
 
@@ -321,7 +321,7 @@ export class SupabaseService {
           *,
           author:user_profiles(*)
         `)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return { data, error: null };
@@ -354,7 +354,7 @@ export class SupabaseService {
         .from('posts')
         .select('likes')
         .eq('id', postId)
-        .single();
+        .maybeSingle();
 
       if (postError) throw postError;
 
@@ -370,7 +370,7 @@ export class SupabaseService {
         .update({ likes: newLikes })
         .eq('id', postId)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return { data: { ...data, isLiked: !isLiked }, error: null };
@@ -385,7 +385,7 @@ export class SupabaseService {
         .from('posts')
         .select('comments')
         .eq('id', postId)
-        .single();
+        .maybeSingle();
 
       if (postError) throw postError;
 
@@ -405,7 +405,7 @@ export class SupabaseService {
         .update({ comments: newComments })
         .eq('id', postId)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return { data, error: null };
@@ -431,7 +431,7 @@ export class SupabaseService {
           sender:user_profiles!sender_id(*),
           receiver:user_profiles!receiver_id(*)
         `)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return { data, error: null };
@@ -473,7 +473,7 @@ export class SupabaseService {
           read: false
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return { data: notification, error: null };
@@ -505,7 +505,7 @@ export class SupabaseService {
         .update({ read: true })
         .eq('id', notificationId)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return { data, error: null };
