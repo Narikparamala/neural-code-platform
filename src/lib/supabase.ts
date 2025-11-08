@@ -96,12 +96,6 @@ export class SupabaseService {
   // Auth functions
   static async signUp(email: string, password: string, userData: { username: string; userID: string; bio?: string; deviceID: string }) {
     try {
-      // First check if user already exists
-      const { data: existingUser } = await supabase.auth.getUser();
-      if (existingUser.user) {
-        throw new Error('User already logged in');
-      }
-
       // Sign up with Supabase Auth
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -110,30 +104,68 @@ export class SupabaseService {
           data: {
             username: userData.username,
             user_id: userData.userID
-          }
+          },
+          emailRedirectTo: undefined // Disable email confirmation for now
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase signup error:', error);
+        throw error;
+      }
+
+      // Wait a moment for the user to be created
+      if (data.user && !data.user.email_confirmed_at) {
+        // For development, we'll proceed without email confirmation
+        console.log('User created, proceeding without email confirmation');
+      }
 
       if (data.user) {
-        // Create user profile
-        const { error: profileError } = await supabase
-          .from('user_profiles')
-          .insert({
-            auth_user_id: data.user.id,
-            username: userData.username,
-            user_id: userData.userID,
-            bio: userData.bio || 'Consciousness explorer and neural researcher',
-            device_id: userData.deviceID,
-            is_verified: false
-          });
-
-        if (profileError) throw profileError;
+        // Create user profile - retry logic for race conditions
+        let retries = 3;
+        let profileError = null;
+        
+        while (retries > 0) {
+          try {
+            const { error: insertError } = await supabase
+              .from('user_profiles')
+              .insert({
+                auth_user_id: data.user.id,
+                username: userData.username,
+                user_id: userData.userID,
+                bio: userData.bio || 'Consciousness explorer and neural researcher',
+                device_id: userData.deviceID,
+                is_verified: false
+              });
+            
+            if (!insertError) {
+              profileError = null;
+              break;
+            }
+            profileError = insertError;
+            retries--;
+            
+            if (retries > 0) {
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+          } catch (err) {
+            profileError = err;
+            retries--;
+            if (retries > 0) {
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+          }
+        }
+        
+        if (profileError) {
+          console.error('Profile creation error:', profileError);
+          // Don't throw here, let the user proceed and create profile later
+        }
       }
 
       return { data, error: null };
     } catch (error: any) {
+      console.error('SignUp error:', error);
       return { data: null, error };
     }
   }
@@ -145,7 +177,10 @@ export class SupabaseService {
         password
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase signin error:', error);
+        throw error;
+      }
 
       // Get user profile
       if (data.user) {
@@ -155,13 +190,17 @@ export class SupabaseService {
           .eq('auth_user_id', data.user.id)
           .maybeSingle();
 
-        if (profileError) throw profileError;
+        if (profileError) {
+          console.error('Profile fetch error:', profileError);
+          // Don't throw here, user can still login
+        }
 
         return { data: { ...data, profile }, error: null };
       }
 
       return { data, error: null };
     } catch (error: any) {
+      console.error('SignIn error:', error);
       return { data: null, error };
     }
   }

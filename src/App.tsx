@@ -44,9 +44,42 @@ function App() {
 
   const checkAuthStatus = async () => {
     try {
+      console.log('Checking auth status...');
       const { data } = await SupabaseService.getCurrentUser();
+      console.log('Auth check result:', data);
       if (data?.profile) {
         setCurrentUser(data.profile);
+        setIsAuthenticated(true);
+      } else if (data?.user) {
+        // User is authenticated but no profile exists, create temporary profile
+        console.log('User authenticated but no profile, creating temporary profile');
+        const tempProfile = {
+          id: data.user.id,
+          auth_user_id: data.user.id,
+          username: data.user.user_metadata?.username || 'User',
+          user_id: data.user.user_metadata?.user_id || data.user.id.slice(0, 8),
+          bio: 'Consciousness explorer and neural researcher',
+          avatar: '🧠',
+          device_id: 'temp-device',
+          is_verified: false,
+          join_date: new Date().toISOString(),
+          followers: [],
+          following: [],
+          stats: {
+            totalSessions: 0,
+            totalTime: 0,
+            favoriteFrequency: 10,
+            level: 1
+          },
+          preferences: {
+            notifications: true,
+            publicProfile: true,
+            allowRandomChat: true
+          },
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        setCurrentUser(tempProfile);
         setIsAuthenticated(true);
       }
     } catch (error) {

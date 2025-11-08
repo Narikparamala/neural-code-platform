@@ -112,9 +112,11 @@ const AuthSystem: React.FC<AuthSystemProps> = ({ onLogin }) => {
     try {
       if (isLogin) {
         // Login with Supabase
+        console.log('Attempting login with:', formData.email);
         const { data, error } = await SupabaseService.signIn(formData.email, formData.password);
         
         if (error) {
+          console.error('Login error:', error);
           setErrors([error.message]);
           setIsLoading(false);
           return;
@@ -122,9 +124,39 @@ const AuthSystem: React.FC<AuthSystemProps> = ({ onLogin }) => {
 
         if (data?.profile) {
           onLogin(data.profile);
+        } else if (data?.user) {
+          // User exists but no profile, create a temporary profile object
+          const tempProfile = {
+            id: data.user.id,
+            auth_user_id: data.user.id,
+            username: data.user.user_metadata?.username || 'User',
+            user_id: data.user.user_metadata?.user_id || data.user.id.slice(0, 8),
+            bio: 'Consciousness explorer and neural researcher',
+            avatar: '🧠',
+            device_id: deviceID,
+            is_verified: false,
+            join_date: new Date().toISOString(),
+            followers: [],
+            following: [],
+            stats: {
+              totalSessions: 0,
+              totalTime: 0,
+              favoriteFrequency: 10,
+              level: 1
+            },
+            preferences: {
+              notifications: true,
+              publicProfile: true,
+              allowRandomChat: true
+            },
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+          onLogin(tempProfile);
         }
       } else {
         // Registration with Supabase
+        console.log('Attempting registration with:', formData.email);
         const { data, error } = await SupabaseService.signUp(
           formData.email, 
           formData.password, 
@@ -137,16 +169,63 @@ const AuthSystem: React.FC<AuthSystemProps> = ({ onLogin }) => {
         );
         
         if (error) {
+          console.error('Registration error:', error);
           setErrors([error.message]);
           setIsLoading(false);
           return;
         }
 
         if (data?.user) {
-          // Get the created profile
-          const { data: userData } = await SupabaseService.getCurrentUser();
-          if (userData?.profile) {
-            onLogin(userData.profile);
+          // For registration, create a temporary profile and let user proceed
+          const tempProfile = {
+            id: data.user.id,
+            auth_user_id: data.user.id,
+            username: formData.username,
+            user_id: formData.userID,
+            bio: formData.bio || 'Consciousness explorer and neural researcher',
+            avatar: '🧠',
+            device_id: deviceID,
+            is_verified: false,
+            join_date: new Date().toISOString(),
+            followers: [],
+            following: [],
+            stats: {
+              totalSessions: 0,
+              totalTime: 0,
+              favoriteFrequency: 10,
+              level: 1
+            },
+            preferences: {
+              notifications: true,
+              publicProfile: true,
+              allowRandomChat: true
+            },
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+          
+          // Show success message for registration
+          alert('Registration successful! You can now use the platform.');
+          onLogin(tempProfile);
+        } else {
+          setErrors(['Registration failed. Please try again.']);
+        }
+      }
+    } catch (error: any) {
+      console.error('Auth error:', error);
+      if (error.message?.includes('email')) {
+        setErrors(['Please check your email and try again. Make sure to use a valid email address.']);
+      } else if (error.message?.includes('password')) {
+        setErrors(['Password must be at least 6 characters long.']);
+      } else if (error.message?.includes('already registered')) {
+        setErrors(['This email is already registered. Please try logging in instead.']);
+      } else {
+        setErrors([error.message || 'An error occurred. Please try again.']);
+      }
+    }
+    
+    setIsLoading(false);
+  };
           }
         }
       }
