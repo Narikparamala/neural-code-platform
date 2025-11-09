@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, Waves, Globe, Users, Archive, Settings, Shield, Menu, X, Zap, BarChart3, User, LogOut } from 'lucide-react';
+import { Brain, Waves, Globe, Users, Archive, Settings, Shield, Menu, X, Zap } from 'lucide-react';
 import RateLab from './components/RateLab';
 import PlaceLab from './components/PlaceLab';
 import PopulationLab from './components/PopulationLab';
@@ -8,11 +8,10 @@ import NeuralArchive from './components/NeuralArchive';
 import NavigationPortal from './components/NavigationPortal';
 import SafetyDashboard from './components/SafetyDashboard';
 import MonroeResearchHub from './components/MonroeResearchHub';
+import CollaborationSync from './components/CollaborationSync';
 import FrequencyLab from './components/FrequencyLab';
-import AdvancedAnalytics from './components/AdvancedAnalytics';
-import SocialPlatform from './components/SocialPlatform';
 
-type ActiveLab = 'home' | 'rate' | 'place' | 'population' | 'monroe' | 'frequency' | 'social';
+type ActiveLab = 'home' | 'rate' | 'place' | 'population' | 'monroe' | 'collaboration' | 'frequency';
 
 function App() {
   const [activeLab, setActiveLab] = useState<ActiveLab>('home');
@@ -20,29 +19,6 @@ function App() {
   const [showSafety, setShowSafety] = useState(false);
   const [sessionData, setSessionData] = useState<any>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>({
-    id: 'demo-user',
-    username: 'Neural Explorer',
-    user_id: 'demo123',
-    bio: 'Consciousness explorer and neural researcher',
-    avatar: '🧠',
-    device_id: 'demo-device',
-    is_verified: false,
-    join_date: new Date().toISOString(),
-    followers: [],
-    following: [],
-    stats: {
-      totalSessions: 0,
-      totalTime: 0,
-      favoriteFrequency: 10,
-      level: 1
-    },
-    preferences: {
-      notifications: true,
-      publicProfile: true,
-      allowRandomChat: true
-    }
-  });
 
   useEffect(() => {
     // Initialize audio context on user interaction
@@ -67,12 +43,12 @@ function App() {
         return <PopulationLab onSessionUpdate={setSessionData} />;
       case 'monroe':
         return <MonroeResearchHub />;
+      case 'collaboration':
+        return <CollaborationSync />;
       case 'frequency':
         return <FrequencyLab onSessionUpdate={setSessionData} />;
-      case 'social':
-        return <SocialPlatform currentUser={currentUser} onSessionUpdate={setSessionData} />;
       default:
-        return <HomePortal onLabSelect={setActiveLab} currentUser={currentUser} />;
+        return <HomePortal onLabSelect={setActiveLab} />;
     }
   };
 
@@ -83,14 +59,12 @@ function App() {
         <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-blue-500/10 animate-pulse"></div>
       </div>
 
-      {/* Enhanced Navigation Portal */}
+      {/* Navigation Portal */}
       <NavigationPortal 
         activeLab={activeLab} 
         onLabSelect={setActiveLab}
         isMobileMenuOpen={isMobileMenuOpen}
         setIsMobileMenuOpen={setIsMobileMenuOpen}
-        currentUser={currentUser}
-        onLogout={() => {}}
       />
 
       {/* Neural Archive Panel */}
@@ -106,7 +80,7 @@ function App() {
         onToggle={() => setShowSafety(!showSafety)}
       />
 
-      {/* Main Content */}
+      {/* Main Content - Added top padding to account for fixed navigation */}
       <main className="relative z-10 pt-20 p-4 lg:p-6">
         <AnimatePresence mode="wait">
           <motion.div
@@ -122,34 +96,32 @@ function App() {
         </AnimatePresence>
       </main>
 
-      {/* Enhanced Control Buttons - Only show for non-social pages */}
-      {activeLab !== 'social' && (
-        <div className="fixed bottom-4 right-4 flex flex-col gap-2 z-40">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setShowArchive(!showArchive)}
-            className="p-3 bg-purple-600 hover:bg-purple-700 rounded-full shadow-lg transition-colors"
-            title="Neural Archive"
-          >
-            <Archive className="w-6 h-6" />
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setShowSafety(!showSafety)}
-            className="p-3 bg-red-600 hover:bg-red-700 rounded-full shadow-lg transition-colors"
-            title="Safety Dashboard"
-          >
-            <Shield className="w-6 h-6" />
-          </motion.button>
-        </div>
-      )}
+      {/* Control Buttons */}
+      <div className="fixed bottom-4 right-4 flex flex-col gap-2 z-40">
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setShowArchive(!showArchive)}
+          className="p-3 bg-purple-600 hover:bg-purple-700 rounded-full shadow-lg transition-colors"
+          title="Neural Archive"
+        >
+          <Archive className="w-6 h-6" />
+        </motion.button>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setShowSafety(!showSafety)}
+          className="p-3 bg-red-600 hover:bg-red-700 rounded-full shadow-lg transition-colors"
+          title="Safety Dashboard"
+        >
+          <Shield className="w-6 h-6" />
+        </motion.button>
+      </div>
     </div>
   );
 }
 
-function HomePortal({ onLabSelect, currentUser }: { onLabSelect: (lab: ActiveLab) => void, currentUser: any }) {
+function HomePortal({ onLabSelect }: { onLabSelect: (lab: ActiveLab) => void }) {
   const labs = [
     {
       id: 'rate' as ActiveLab,
@@ -185,19 +157,11 @@ function HomePortal({ onLabSelect, currentUser }: { onLabSelect: (lab: ActiveLab
     },
     {
       id: 'frequency' as ActiveLab,
-      title: 'Advanced Frequency Laboratory',
+      title: 'Frequency Laboratory',
       description: 'Advanced multi-method brainwave entrainment with real-time monitoring',
       icon: Zap,
       color: 'from-cyan-500 to-blue-500',
       features: ['Multi-Method', 'Real-time Monitor', 'Custom Configs', 'Background Sounds']
-    },
-    {
-      id: 'social' as ActiveLab,
-      title: 'Collaboration Sync - Consciousness Network',
-      description: 'Connect, share knowledge, and collaborate with consciousness explorers worldwide',
-      icon: Users,
-      color: 'from-pink-500 to-rose-500',
-      features: ['Social Profiles', 'Real-time Chat', 'Knowledge Sharing', 'Random Connect']
     }
   ];
 
@@ -213,23 +177,8 @@ function HomePortal({ onLabSelect, currentUser }: { onLabSelect: (lab: ActiveLab
           Neural Code Platform
         </h1>
         <p className="text-lg lg:text-xl text-gray-300 max-w-2xl mx-auto px-4">
-          Welcome, <span className="text-purple-400 font-semibold">@{currentUser?.user_id}</span>! 
-          Explore consciousness through audio-visual neural interfaces and connect with fellow researchers.
+          Explore consciousness through audio-visual neural interfaces based on Robert Monroe's research
         </p>
-        <div className="mt-6 flex items-center justify-center gap-4 text-sm text-gray-400">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-            <span>Production Ready</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-            <span>Social Network</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
-            <span>AI-Powered Analytics</span>
-          </div>
-        </div>
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8 max-w-7xl w-full px-4">
@@ -239,9 +188,9 @@ function HomePortal({ onLabSelect, currentUser }: { onLabSelect: (lab: ActiveLab
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: index * 0.1 }}
-            whileHover={{ scale: 1.02, y: -5 }}
+            whileHover={{ scale: 1.02 }}
             onClick={() => onLabSelect(lab.id)}
-            className={`p-6 lg:p-8 rounded-xl bg-gradient-to-br ${lab.color} opacity-90 hover:opacity-100 transition-all cursor-pointer shadow-2xl hover:shadow-3xl`}
+            className={`p-6 lg:p-8 rounded-xl bg-gradient-to-br ${lab.color} opacity-90 hover:opacity-100 transition-all cursor-pointer shadow-2xl`}
           >
             <div className="flex items-center mb-4">
               <lab.icon className="w-8 h-8 mr-3" />
@@ -250,7 +199,7 @@ function HomePortal({ onLabSelect, currentUser }: { onLabSelect: (lab: ActiveLab
             <p className="text-white/90 mb-4 text-sm lg:text-base">{lab.description}</p>
             <div className="grid grid-cols-2 gap-2">
               {lab.features.map((feature, i) => (
-                <div key={i} className="text-xs lg:text-sm bg-white/20 rounded-lg px-2 py-1 text-center backdrop-blur-sm">
+                <div key={i} className="text-xs lg:text-sm bg-white/20 rounded-lg px-2 py-1 text-center">
                   {feature}
                 </div>
               ))}
@@ -265,16 +214,9 @@ function HomePortal({ onLabSelect, currentUser }: { onLabSelect: (lab: ActiveLab
         transition={{ duration: 0.6, delay: 0.8 }}
         className="mt-8 lg:mt-12 text-center px-4"
       >
-        <p className="text-gray-400 text-sm lg:text-base mb-4">
-          "We're not just building an app - we're creating the social network for consciousness exploration."
+        <p className="text-gray-400 text-sm lg:text-base">
+          "We're not just building an app - we're creating the Python REPL for consciousness exploration."
         </p>
-        <div className="flex flex-wrap justify-center gap-4 text-xs text-gray-500">
-          <span>• Real-time Brainwave Entrainment</span>
-          <span>• 3D Spatial Audio Processing</span>
-          <span>• AI-Powered Session Analysis</span>
-          <span>• Global Social Network</span>
-          <span>• Advanced Safety Protocols</span>
-        </div>
       </motion.div>
     </div>
   );
