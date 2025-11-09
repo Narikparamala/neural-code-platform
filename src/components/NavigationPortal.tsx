@@ -108,6 +108,13 @@ const NavigationPortal: React.FC<NavigationPortalProps> = ({
 
             {/* Mobile User Info */}
             {currentUser && (
+              <div className="lg:hidden flex items-center gap-2 px-3 py-1.5 bg-gray-800/80 backdrop-blur-sm rounded-lg border border-gray-600/50 shadow-md">
+                <div className="w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center text-sm">
+                  {currentUser.avatar || currentUser.username.charAt(0).toUpperCase()}
+                </div>
+                <span className="text-xs font-medium text-gray-200">@{currentUser.user_id}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -116,7 +123,7 @@ const NavigationPortal: React.FC<NavigationPortalProps> = ({
       <AnimatePresence>
         {isMobileMenuOpen && (
           <>
-              <span className="text-xs font-medium text-gray-200">@{currentUser.user_id}</span>
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
