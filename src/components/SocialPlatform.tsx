@@ -1,11 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  User, MessageCircle, Heart, Share2, Search, Plus, Send, 
-  Users, Settings, Bell, Camera, Edit3, Save, X, Eye,
-  Headphones, Brain, Zap, Globe, MoreHorizontal, UserPlus,
-  Hash, TrendingUp, Clock, Star, Award, Target, BarChart3
-} from 'lucide-react';
+import { User, MessageCircle, Heart, Share2, Search, Plus, Send, Users, Settings, Bell, Camera, CreditCard as Edit3, Save, X, Eye, Headphones, Brain, Zap, Globe, MoreHorizontal, UserPlus, Hash, TrendingUp, Clock, Star, Award, Target, BarChart3 } from 'lucide-react';
 import { SupabaseService, UserProfile, Post, ChatMessage, Notification } from '../lib/supabase';
 
 interface SocialPlatformProps {
