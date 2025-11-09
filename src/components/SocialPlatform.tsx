@@ -9,37 +9,34 @@ import {
 import { SupabaseService, UserProfile, Post, ChatMessage, Notification } from '../lib/supabase';
 
 interface SocialPlatformProps {
-  currentUser: UserProfile;
+  currentUser: any;
   onSessionUpdate?: (data: any) => void;
 }
 
 const SocialPlatform: React.FC<SocialPlatformProps> = ({ currentUser, onSessionUpdate }) => {
   const [activeTab, setActiveTab] = useState<'feed' | 'profile' | 'chat' | 'explore' | 'analytics'>('feed');
   const [posts, setPosts] = useState<Post[]>([]);
-  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<UserProfile[]>([]);
-  const [onlineUsers, setOnlineUsers] = useState<UserProfile[]>([]);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [newPost, setNewPost] = useState({ content: '', type: 'text', tags: [] });
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileForm, setProfileForm] = useState({ username: '', bio: '' });
-  const [randomChatUser, setRandomChatUser] = useState<UserProfile | null>(null);
+  const [randomChatUser, setRandomChatUser] = useState<any>(null);
   const [isSearchingRandom, setIsSearchingRandom] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
-  const messagesSubscription = useRef<any>(null);
-  const notificationsSubscription = useRef<any>(null);
-  const postsSubscription = useRef<any>(null);
 
   // Initialize data and subscriptions
   useEffect(() => {
-    loadInitialData();
-    setupSubscriptions();
+    // Load mock data instead of Supabase
+    loadMockData();
     
     // Set profile form data
     if (currentUser) {
@@ -48,13 +45,6 @@ const SocialPlatform: React.FC<SocialPlatformProps> = ({ currentUser, onSessionU
         bio: currentUser.bio || ''
       });
     }
-
-    return () => {
-      // Cleanup subscriptions
-      if (messagesSubscription.current) messagesSubscription.current.unsubscribe();
-      if (notificationsSubscription.current) notificationsSubscription.current.unsubscribe();
-      if (postsSubscription.current) postsSubscription.current.unsubscribe();
-    };
   }, [currentUser]);
 
   // Auto-scroll chat
@@ -76,172 +66,189 @@ const SocialPlatform: React.FC<SocialPlatformProps> = ({ currentUser, onSessionU
     });
   }, [activeTab, posts, onlineUsers, notifications, selectedUser, onSessionUpdate]);
 
-  const loadInitialData = async () => {
+  const loadMockData = () => {
     setIsLoading(true);
-    try {
-      // Load posts
-      const { data: postsData } = await SupabaseService.getPosts(20);
-      if (postsData) setPosts(postsData);
+    
+    // Mock posts
+    setPosts([
+      {
+        id: '1',
+        author_id: 'user1',
+        content: 'Just had an amazing gamma wave session! The 40Hz frequency really enhanced my focus and cognitive clarity. Anyone else experiencing similar results?',
+        type: 'text',
+        media: [],
+        tags: ['gamma', 'focus', 'cognitive'],
+        likes: ['user2', 'user3'],
+        comments: [],
+        shares: 2,
+        created_at: new Date(Date.now() - 3600000).toISOString(),
+        author: {
+          id: 'user1',
+          username: 'Dr. Consciousness',
+          user_id: 'drcons',
+          avatar: '👨‍🔬',
+          is_verified: true
+        }
+      },
+      {
+        id: '2',
+        author_id: 'user2',
+        content: 'Sharing my latest alpha wave preset for deep relaxation and stress relief.',
+        type: 'preset',
+        media: [],
+        preset: {
+          name: 'Alpha Relaxation',
+          frequency: 10,
+          carrier: 200,
+          description: 'Perfect for meditation and stress relief'
+        },
+        tags: ['alpha', 'relaxation', 'meditation'],
+        likes: ['user1', 'user3', 'user4'],
+        comments: [],
+        shares: 5,
+        created_at: new Date(Date.now() - 7200000).toISOString(),
+        author: {
+          id: 'user2',
+          username: 'Frequency Master',
+          user_id: 'freqmaster',
+          avatar: '🎵',
+          is_verified: false
+        }
+      }
+    ]);
 
-      // Load notifications
-      const { data: notificationsData } = await SupabaseService.getNotifications(currentUser.id);
-      if (notificationsData) setNotifications(notificationsData);
+    // Mock online users
+    setOnlineUsers([
+      { id: 'user1', username: 'Dr. Consciousness', user_id: 'drcons', avatar: '👨‍🔬', status: 'online' },
+      { id: 'user2', username: 'Frequency Master', user_id: 'freqmaster', avatar: '🎵', status: 'online' },
+      { id: 'user3', username: 'Neural Explorer', user_id: 'neuralexp', avatar: '🧠', status: 'online' },
+      { id: 'user4', username: 'Consciousness Researcher', user_id: 'consres', avatar: '🔬', status: 'online' }
+    ]);
 
-      // Simulate online users (in real app, this would be from presence)
-      const { data: usersData } = await SupabaseService.searchUsers('', 10);
-      if (usersData) setOnlineUsers(usersData.filter(u => u.id !== currentUser.id));
+    // Mock notifications
+    setNotifications([
+      {
+        id: '1',
+        user_id: currentUser.id,
+        type: 'like',
+        message: 'Dr. Consciousness liked your post',
+        data: {},
+        read: false,
+        created_at: new Date(Date.now() - 1800000).toISOString()
+      }
+    ]);
 
-    } catch (error) {
-      console.error('Error loading initial data:', error);
-    }
     setIsLoading(false);
   };
 
-  const setupSubscriptions = () => {
-    // Subscribe to new messages
-    messagesSubscription.current = SupabaseService.subscribeToMessages(
-      currentUser.id,
-      (message) => {
-        if (selectedUser && 
-            (message.sender_id === selectedUser.id || message.receiver_id === selectedUser.id)) {
-          setChatMessages(prev => [...prev, message]);
-        }
-      }
-    );
-
-    // Subscribe to notifications
-    notificationsSubscription.current = SupabaseService.subscribeToNotifications(
-      currentUser.id,
-      (notification) => {
-        setNotifications(prev => [notification, ...prev]);
-      }
-    );
-
-    // Subscribe to new posts
-    postsSubscription.current = SupabaseService.subscribeToNewPosts((post) => {
-      setPosts(prev => [post, ...prev]);
-    });
-  };
-
-  const createPost = async () => {
+  const createPost = () => {
     if (!newPost.content.trim()) return;
 
-    try {
-      const { data } = await SupabaseService.createPost(currentUser.id, {
-        content: newPost.content,
-        type: newPost.type as any,
-        tags: newPost.tags,
-        media: [],
-        preset: newPost.type === 'preset' ? {
-          name: 'Sample Preset',
-          frequency: 10,
-          carrier: 200,
-          description: 'Sample description'
-        } : undefined
-      });
+    const newPostData = {
+      id: Date.now().toString(),
+      author_id: currentUser.id,
+      content: newPost.content,
+      type: newPost.type,
+      media: [],
+      preset: newPost.type === 'preset' ? {
+        name: 'Sample Preset',
+        frequency: 10,
+        carrier: 200,
+        description: 'Sample description'
+      } : undefined,
+      tags: newPost.tags,
+      likes: [],
+      comments: [],
+      shares: 0,
+      created_at: new Date().toISOString(),
+      author: currentUser
+    };
 
-      if (data) {
-        setPosts(prev => [data, ...prev]);
-        setNewPost({ content: '', type: 'text', tags: [] });
-        setShowCreatePost(false);
-      }
-    } catch (error) {
-      console.error('Error creating post:', error);
-    }
+    setPosts(prev => [newPostData, ...prev]);
+    setNewPost({ content: '', type: 'text', tags: [] });
+    setShowCreatePost(false);
   };
 
-  const likePost = async (postId: string) => {
-    try {
-      const { data } = await SupabaseService.likePost(postId, currentUser.id);
-      if (data) {
-        setPosts(prev => prev.map(post => 
-          post.id === postId ? { ...post, likes: data.likes } : post
-        ));
+  const likePost = (postId: string) => {
+    setPosts(prev => prev.map(post => {
+      if (post.id === postId) {
+        const isLiked = post.likes.includes(currentUser.id);
+        const newLikes = isLiked 
+          ? post.likes.filter(id => id !== currentUser.id)
+          : [...post.likes, currentUser.id];
+        return { ...post, likes: newLikes };
       }
-    } catch (error) {
-      console.error('Error liking post:', error);
-    }
+      return post;
+    }));
   };
 
-  const searchUsers = async (query: string) => {
+  const searchUsers = (query: string) => {
     if (!query.trim()) {
       setSearchResults([]);
       return;
     }
 
-    try {
-      const { data } = await SupabaseService.searchUsers(query);
-      if (data) {
-        setSearchResults(data.filter(user => user.id !== currentUser.id));
-      }
-    } catch (error) {
-      console.error('Error searching users:', error);
-    }
+    const filtered = onlineUsers.filter(user => 
+      user.username.toLowerCase().includes(query.toLowerCase()) ||
+      user.user_id.toLowerCase().includes(query.toLowerCase())
+    );
+    setSearchResults(filtered);
   };
 
-  const startChat = async (user: UserProfile) => {
+  const startChat = (user: any) => {
     setSelectedUser(user);
     setActiveTab('chat');
     
-    try {
-      const { data } = await SupabaseService.getMessages(currentUser.id, user.id);
-      if (data) {
-        setChatMessages(data);
+    // Load mock messages
+    setChatMessages([
+      {
+        id: '1',
+        sender_id: user.id,
+        receiver_id: currentUser.id,
+        content: 'Hey! How are your consciousness exploration sessions going?',
+        type: 'text',
+        created_at: new Date(Date.now() - 3600000).toISOString(),
+        sender: user
       }
-    } catch (error) {
-      console.error('Error loading messages:', error);
-    }
+    ]);
   };
 
-  const sendMessage = async () => {
+  const sendMessage = () => {
     if (!newMessage.trim() || !selectedUser) return;
 
-    try {
-      const { data } = await SupabaseService.sendMessage(
-        currentUser.id,
-        selectedUser.id,
-        newMessage
-      );
+    const message = {
+      id: Date.now().toString(),
+      sender_id: currentUser.id,
+      receiver_id: selectedUser.id,
+      content: newMessage,
+      type: 'text',
+      created_at: new Date().toISOString(),
+      sender: currentUser
+    };
 
-      if (data) {
-        setChatMessages(prev => [...prev, data]);
-        setNewMessage('');
-      }
-    } catch (error) {
-      console.error('Error sending message:', error);
-    }
+    setChatMessages(prev => [...prev, message]);
+    setNewMessage('');
   };
 
-  const findRandomUser = async () => {
+  const findRandomUser = () => {
     setIsSearchingRandom(true);
     
-    try {
-      // Get random user from online users
-      const availableUsers = onlineUsers.filter(user => 
-        user.id !== currentUser.id && 
-        !currentUser.following?.includes(user.id)
-      );
-      
-      if (availableUsers.length > 0) {
-        const randomUser = availableUsers[Math.floor(Math.random() * availableUsers.length)];
-        setRandomChatUser(randomUser);
-      } else {
-        setRandomChatUser(null);
-      }
-    } catch (error) {
-      console.error('Error finding random user:', error);
+    // Get random user from online users
+    const availableUsers = onlineUsers.filter(user => user.id !== currentUser.id);
+    
+    if (availableUsers.length > 0) {
+      const randomUser = availableUsers[Math.floor(Math.random() * availableUsers.length)];
+      setRandomChatUser(randomUser);
+    } else {
+      setRandomChatUser(null);
     }
     
     setIsSearchingRandom(false);
   };
 
-  const followUser = async (userId: string) => {
-    try {
-      await SupabaseService.followUser(currentUser.id, userId);
-      // Update local state or refetch data as needed
-    } catch (error) {
-      console.error('Error following user:', error);
-    }
+  const followUser = (userId: string) => {
+    // Mock follow functionality
+    console.log('Following user:', userId);
   };
 
   const formatTime = (timestamp: string) => {

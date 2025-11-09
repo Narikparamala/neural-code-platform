@@ -11,8 +11,6 @@ import MonroeResearchHub from './components/MonroeResearchHub';
 import FrequencyLab from './components/FrequencyLab';
 import AdvancedAnalytics from './components/AdvancedAnalytics';
 import SocialPlatform from './components/SocialPlatform';
-import AuthSystem from './components/AuthSystem';
-import { SupabaseService, UserProfile } from './lib/supabase';
 
 type ActiveLab = 'home' | 'rate' | 'place' | 'population' | 'monroe' | 'frequency' | 'social';
 
@@ -22,14 +20,31 @@ function App() {
   const [showSafety, setShowSafety] = useState(false);
   const [sessionData, setSessionData] = useState<any>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState<any>({
+    id: 'demo-user',
+    username: 'Neural Explorer',
+    user_id: 'demo123',
+    bio: 'Consciousness explorer and neural researcher',
+    avatar: '🧠',
+    device_id: 'demo-device',
+    is_verified: false,
+    join_date: new Date().toISOString(),
+    followers: [],
+    following: [],
+    stats: {
+      totalSessions: 0,
+      totalTime: 0,
+      favoriteFrequency: 10,
+      level: 1
+    },
+    preferences: {
+      notifications: true,
+      publicProfile: true,
+      allowRandomChat: true
+    }
+  });
 
   useEffect(() => {
-    // Check for existing authentication
-    checkAuthStatus();
-
     // Initialize audio context on user interaction
     const initAudioContext = () => {
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -42,73 +57,7 @@ function App() {
     return () => document.removeEventListener('click', initAudioContext);
   }, []);
 
-  const checkAuthStatus = async () => {
-    try {
-      console.log('Checking auth status...');
-      const { data } = await SupabaseService.getCurrentUser();
-      console.log('Auth check result:', data);
-      if (data?.profile) {
-        setCurrentUser(data.profile);
-        setIsAuthenticated(true);
-      } else if (data?.user) {
-        // User is authenticated but no profile exists, create temporary profile
-        console.log('User authenticated but no profile, creating temporary profile');
-        const tempProfile = {
-          id: data.user.id,
-          auth_user_id: data.user.id,
-          username: data.user.user_metadata?.username || 'User',
-          user_id: data.user.user_metadata?.user_id || data.user.id.slice(0, 8),
-          bio: 'Consciousness explorer and neural researcher',
-          avatar: '🧠',
-          device_id: 'temp-device',
-          is_verified: false,
-          join_date: new Date().toISOString(),
-          followers: [],
-          following: [],
-          stats: {
-            totalSessions: 0,
-            totalTime: 0,
-            favoriteFrequency: 10,
-            level: 1
-          },
-          preferences: {
-            notifications: true,
-            publicProfile: true,
-            allowRandomChat: true
-          },
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-        setCurrentUser(tempProfile);
-        setIsAuthenticated(true);
-      }
-    } catch (error) {
-      console.error('Auth check failed:', error);
-    }
-    setIsLoading(false);
-  };
-
-  const handleLogin = (user: UserProfile) => {
-    setCurrentUser(user);
-    setIsAuthenticated(true);
-  };
-
-  const handleLogout = async () => {
-    try {
-      await SupabaseService.signOut();
-      setCurrentUser(null);
-      setIsAuthenticated(false);
-      setActiveLab('home');
-    } catch (error) {
-      console.error('Logout failed:', error);
-    }
-  };
-
   const renderActiveLab = () => {
-    if (!isAuthenticated || !currentUser) {
-      return <AuthSystem onLogin={handleLogin} />;
-    }
-
     switch (activeLab) {
       case 'rate':
         return <RateLab onSessionUpdate={setSessionData} />;
@@ -127,28 +76,6 @@ function App() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading Neural Code Platform...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white overflow-hidden">
-        <div className="fixed inset-0 opacity-20">
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-blue-500/10 animate-pulse"></div>
-        </div>
-        <AuthSystem onLogin={handleLogin} />
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white overflow-hidden">
       {/* Animated Background */}
@@ -163,7 +90,7 @@ function App() {
         isMobileMenuOpen={isMobileMenuOpen}
         setIsMobileMenuOpen={setIsMobileMenuOpen}
         currentUser={currentUser}
-        onLogout={handleLogout}
+        onLogout={() => {}}
       />
 
       {/* Neural Archive Panel */}
@@ -222,7 +149,7 @@ function App() {
   );
 }
 
-function HomePortal({ onLabSelect, currentUser }: { onLabSelect: (lab: ActiveLab) => void, currentUser: UserProfile | null }) {
+function HomePortal({ onLabSelect, currentUser }: { onLabSelect: (lab: ActiveLab) => void, currentUser: any }) {
   const labs = [
     {
       id: 'rate' as ActiveLab,
@@ -286,7 +213,7 @@ function HomePortal({ onLabSelect, currentUser }: { onLabSelect: (lab: ActiveLab
           Neural Code Platform
         </h1>
         <p className="text-lg lg:text-xl text-gray-300 max-w-2xl mx-auto px-4">
-          Welcome back, <span className="text-purple-400 font-semibold">@{currentUser?.user_id}</span>! 
+          Welcome, <span className="text-purple-400 font-semibold">@{currentUser?.user_id}</span>! 
           Explore consciousness through audio-visual neural interfaces and connect with fellow researchers.
         </p>
         <div className="mt-6 flex items-center justify-center gap-4 text-sm text-gray-400">

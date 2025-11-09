@@ -108,13 +108,6 @@ const NavigationPortal: React.FC<NavigationPortalProps> = ({
 
             {/* Mobile User Info */}
             {currentUser && (
-              <div className="lg:hidden flex items-center gap-2 px-3 py-1.5 bg-gray-800/80 backdrop-blur-sm rounded-lg border border-gray-600/50 shadow-md">
-                <div className="w-5 h-5 bg-purple-600 rounded-full flex items-center justify-center text-xs">
-                  {currentUser.avatar || currentUser.username.charAt(0).toUpperCase()}
-                </div>
-                <span className="text-xs font-medium text-gray-200">@{currentUser.userID}</span>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -123,7 +116,7 @@ const NavigationPortal: React.FC<NavigationPortalProps> = ({
       <AnimatePresence>
         {isMobileMenuOpen && (
           <>
-            <motion.div
+              <span className="text-xs font-medium text-gray-200">@{currentUser.user_id}</span>
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -151,7 +144,7 @@ const NavigationPortal: React.FC<NavigationPortalProps> = ({
                         </div>
                         <div className="text-left">
                           <div className="font-medium text-sm">{currentUser.username}</div>
-                          <div className="text-xs text-gray-400">@{currentUser.userID}</div>
+                          <div className="text-xs text-gray-400">@{currentUser.user_id}</div>
                         </div>
                       </div>
                     </div>
@@ -200,20 +193,6 @@ const NavigationPortal: React.FC<NavigationPortalProps> = ({
                       )}
                     </motion.button>
                   ))}
-                </div>
-                
-                {/* Logout Button */}
-                <div className="mt-6">
-                  <button
-                    onClick={() => {
-                      onLogout();
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="w-full flex items-center gap-3 p-3 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 rounded-lg transition-all duration-300"
-                  >
-                    <LogOut className="w-5 h-5 text-red-400" />
-                    <span className="text-red-400 font-medium">Logout</span>
-                  </button>
                 </div>
                 
                 {/* Footer info */}
