@@ -1,13 +1,11 @@
 import React from 'react';
-import { Menu, X, Home, Brain, Users, Zap, Globe, BarChart3 } from 'lucide-react';
+import { Menu, X, Home, Brain, Users, Zap, Globe, Heart, ExternalLink } from 'lucide-react';
 
 interface NavigationPortalProps {
   activeLab: string;
   onLabSelect: (lab: string) => void;
   isMobileMenuOpen: boolean;
   setIsMobileMenuOpen: (open: boolean) => void;
-  currentUser: any;
-  onLogout: () => void;
 }
 
 export default function NavigationPortal({
@@ -15,8 +13,6 @@ export default function NavigationPortal({
   onLabSelect,
   isMobileMenuOpen,
   setIsMobileMenuOpen,
-  currentUser,
-  onLogout
 }: NavigationPortalProps) {
   const labs = [
     { id: 'home', name: 'Home', icon: Home },
@@ -24,8 +20,8 @@ export default function NavigationPortal({
     { id: 'place', name: 'Place Lab', icon: Globe },
     { id: 'population', name: 'Population Lab', icon: Users },
     { id: 'frequency', name: 'Frequency Lab', icon: Zap },
-    { id: 'monroe', name: 'Monroe Hub', icon: BarChart3 },
-    { id: 'social', name: 'Social Platform', icon: Users },
+    { id: 'connect', name: 'Connect', icon: ExternalLink },
+    { id: 'sponsor', name: 'Sponsor', icon: Heart },
   ];
 
   return (

@@ -1,18 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, Waves, Globe, Users, Archive, Settings, Shield, Menu, X, Zap, BarChart3, User, LogOut } from 'lucide-react';
+import { Brain, Waves, Globe, Users, Archive, Settings, Shield, Menu, X, Zap, Heart, ExternalLink } from 'lucide-react';
 import RateLab from './components/RateLab';
 import PlaceLab from './components/PlaceLab';
 import PopulationLab from './components/PopulationLab';
+import FrequencyLab from './components/FrequencyLab';
 import NeuralArchive from './components/NeuralArchive';
 import NavigationPortal from './components/NavigationPortal';
 import SafetyDashboard from './components/SafetyDashboard';
-import MonroeResearchHub from './components/MonroeResearchHub';
-import FrequencyLab from './components/FrequencyLab';
-import AdvancedAnalytics from './components/AdvancedAnalytics';
-import SocialPlatform from './components/SocialPlatform';
+import ConnectPage from './components/ConnectPage';
+import SponsorshipPage from './components/SponsorshipPage';
 
-type ActiveLab = 'home' | 'rate' | 'place' | 'population' | 'monroe' | 'frequency' | 'social';
+type ActiveLab = 'home' | 'rate' | 'place' | 'population' | 'frequency' | 'connect' | 'sponsor';
 
 function App() {
   const [activeLab, setActiveLab] = useState<ActiveLab>('home');
@@ -20,29 +19,6 @@ function App() {
   const [showSafety, setShowSafety] = useState(false);
   const [sessionData, setSessionData] = useState<any>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>({
-    id: 'demo-user',
-    username: 'Neural Explorer',
-    user_id: 'demo123',
-    bio: 'Consciousness explorer and neural researcher',
-    avatar: '🧠',
-    device_id: 'demo-device',
-    is_verified: false,
-    join_date: new Date().toISOString(),
-    followers: [],
-    following: [],
-    stats: {
-      totalSessions: 0,
-      totalTime: 0,
-      favoriteFrequency: 10,
-      level: 1
-    },
-    preferences: {
-      notifications: true,
-      publicProfile: true,
-      allowRandomChat: true
-    }
-  });
 
   useEffect(() => {
     // Initialize audio context on user interaction
@@ -65,14 +41,14 @@ function App() {
         return <PlaceLab onSessionUpdate={setSessionData} />;
       case 'population':
         return <PopulationLab onSessionUpdate={setSessionData} />;
-      case 'monroe':
-        return <MonroeResearchHub />;
       case 'frequency':
         return <FrequencyLab onSessionUpdate={setSessionData} />;
-      case 'social':
-        return <SocialPlatform currentUser={currentUser} onSessionUpdate={setSessionData} />;
+      case 'connect':
+        return <ConnectPage />;
+      case 'sponsor':
+        return <SponsorshipPage />;
       default:
-        return <HomePortal onLabSelect={setActiveLab} currentUser={currentUser} />;
+        return <HomePortal onLabSelect={setActiveLab} />;
     }
   };
 
@@ -89,8 +65,6 @@ function App() {
         onLabSelect={setActiveLab}
         isMobileMenuOpen={isMobileMenuOpen}
         setIsMobileMenuOpen={setIsMobileMenuOpen}
-        currentUser={currentUser}
-        onLogout={() => {}}
       />
 
       {/* Neural Archive Panel */}
@@ -123,7 +97,7 @@ function App() {
       </main>
 
       {/* Enhanced Control Buttons - Only show for non-social pages */}
-      {activeLab !== 'social' && (
+      {!['connect', 'sponsor'].includes(activeLab) && (
         <div className="fixed bottom-4 right-4 flex flex-col gap-2 z-40">
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -149,7 +123,7 @@ function App() {
   );
 }
 
-function HomePortal({ onLabSelect, currentUser }: { onLabSelect: (lab: ActiveLab) => void, currentUser: any }) {
+function HomePortal({ onLabSelect }: { onLabSelect: (lab: ActiveLab) => void }) {
   const labs = [
     {
       id: 'rate' as ActiveLab,
@@ -190,14 +164,6 @@ function HomePortal({ onLabSelect, currentUser }: { onLabSelect: (lab: ActiveLab
       icon: Zap,
       color: 'from-cyan-500 to-blue-500',
       features: ['Multi-Method', 'Real-time Monitor', 'Custom Configs', 'Background Sounds']
-    },
-    {
-      id: 'social' as ActiveLab,
-      title: 'Collaboration Sync - Consciousness Network',
-      description: 'Connect, share knowledge, and collaborate with consciousness explorers worldwide',
-      icon: Users,
-      color: 'from-pink-500 to-rose-500',
-      features: ['Social Profiles', 'Real-time Chat', 'Knowledge Sharing', 'Random Connect']
     }
   ];
 
@@ -210,20 +176,15 @@ function HomePortal({ onLabSelect, currentUser }: { onLabSelect: (lab: ActiveLab
         className="text-center mb-8 lg:mb-12"
       >
         <h1 className="text-4xl lg:text-6xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-          Neural Code Platform
+          CosmicSpirit - Neural Code Platform
         </h1>
         <p className="text-lg lg:text-xl text-gray-300 max-w-2xl mx-auto px-4">
-          Welcome, <span className="text-purple-400 font-semibold">@{currentUser?.user_id}</span>! 
-          Explore consciousness through audio-visual neural interfaces and connect with fellow researchers.
+          Explore consciousness through advanced audio-visual neural interfaces and brainwave entrainment technology.
         </p>
         <div className="mt-6 flex items-center justify-center gap-4 text-sm text-gray-400">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
             <span>Production Ready</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-            <span>Social Network</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
@@ -266,13 +227,12 @@ function HomePortal({ onLabSelect, currentUser }: { onLabSelect: (lab: ActiveLab
         className="mt-8 lg:mt-12 text-center px-4"
       >
         <p className="text-gray-400 text-sm lg:text-base mb-4">
-          "We're not just building an app - we're creating the social network for consciousness exploration."
+          "Advanced neural entrainment technology for consciousness exploration and cognitive enhancement."
         </p>
         <div className="flex flex-wrap justify-center gap-4 text-xs text-gray-500">
           <span>• Real-time Brainwave Entrainment</span>
           <span>• 3D Spatial Audio Processing</span>
           <span>• AI-Powered Session Analysis</span>
-          <span>• Global Social Network</span>
           <span>• Advanced Safety Protocols</span>
         </div>
       </motion.div>
