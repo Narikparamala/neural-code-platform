@@ -143,19 +143,11 @@ function HomePortal({ onLabSelect }: { onLabSelect: (lab: ActiveLab) => void }) 
     },
     {
       id: 'population' as ActiveLab,
-      title: 'Population Lab',
-      description: 'Attention games with neural cluster dynamics and population coding',
+      title: 'Game Lab',
+      description: 'Interactive neural training games with attention and cognitive challenges',
       icon: Users,
       color: 'from-purple-500 to-pink-500',
-      features: ['Attention Training', 'Neural Clusters', 'Population Coding', 'Cognitive Games']
-    },
-    {
-      id: 'monroe' as ActiveLab,
-      title: 'Monroe Research Hub',
-      description: 'Hemi-Sync® protocols and consciousness research with AI analysis',
-      icon: Brain,
-      color: 'from-orange-500 to-red-500',
-      features: ['Hemi-Sync®', 'Research Data', 'AI Analysis', 'Consciousness Mapping']
+      features: ['Attention Training', 'Neural Games', 'Cognitive Challenges', 'Brain Training']
     },
     {
       id: 'frequency' as ActiveLab,

@@ -26,10 +26,10 @@ const PopulationLab: React.FC<PopulationLabProps> = ({ onSessionUpdate }) => {
         </div>
         
         <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-8 border border-gray-700">
-          <h3 className="text-2xl font-semibold mb-4">Parietal Cortex Trainer</h3>
+          <h3 className="text-2xl font-semibold mb-4">Neural Training Games</h3>
           <p className="text-gray-300 mb-6">
-            Train your attention by activating neural clusters in the parietal cortex.
-            Watch as population coding dynamics respond to your focus and attention.
+            Enhance your cognitive abilities through interactive neural training games.
+            Challenge your attention, focus, and mental agility with brain training exercises.
           </p>
           
           <div className="h-96 bg-gray-900/50 rounded-lg flex items-center justify-center">
