@@ -1,37 +1,43 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { MessageSquareQuote, Send, Check, Loader2 } from 'lucide-react';
-import { submitToInbox } from '../lib/forms';
+import { MessageSquareQuote, Send, Check, Loader2, AlertCircle } from 'lucide-react';
+import { fetchStories, submitStory, type Story } from '../lib/supabase';
 
-type Story = {
-  name: string;
-  text: string;
-  date?: string;
-};
+function formatDate(iso: string) {
+  try {
+    return new Date(iso).toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  } catch {
+    return '';
+  }
+}
 
 export default function StoryWall() {
   const [stories, setStories] = useState<Story[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState('');
   const [name, setName] = useState('');
   const [text, setText] = useState('');
   const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const [message, setMessage] = useState('');
 
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`${import.meta.env.BASE_URL}stories.json`)
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data) => {
-        if (!cancelled && Array.isArray(data)) setStories(data);
-      })
-      .catch(() => undefined)
-      .finally(() => {
-        if (!cancelled) setLoaded(true);
-      });
-    return () => {
-      cancelled = true;
-    };
+  const load = useCallback(async () => {
+    const result = await fetchStories();
+    if (result.data) {
+      setStories(result.data);
+      setLoadError('');
+    } else {
+      setLoadError(result.error || 'Could not load stories.');
+    }
+    setLoaded(true);
   }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,20 +47,15 @@ export default function StoryWall() {
       return;
     }
     setState('sending');
-    const result = await submitToInbox({
-      _subject: 'New CosmicSpirit0 story submission',
-      name: name.trim() || 'Anonymous',
-      story: text.trim(),
-      kind: 'story',
-    });
-    if (result.success) {
+    const result = await submitStory(name, text);
+    if (result.data) {
       setState('sent');
       setMessage('Story received. It will appear here after a quick review.');
       setName('');
       setText('');
     } else {
       setState('error');
-      setMessage(result.message);
+      setMessage(result.error || 'Could not send your story.');
     }
   };
 
@@ -85,20 +86,36 @@ export default function StoryWall() {
               <Loader2 className="w-4 h-4 animate-spin" /> Loading stories…
             </div>
           )}
-          {loaded && stories.length === 0 && (
+          {loaded && loadError && (
+            <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-4 text-sm text-red-300">
+              <AlertCircle className="w-4 h-4 inline mr-1" />
+              {loadError}{' '}
+              <button
+                type="button"
+                onClick={() => {
+                  setLoaded(false);
+                  load();
+                }}
+                className="underline underline-offset-2"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+          {loaded && !loadError && stories.length === 0 && (
             <div className="rounded-lg border border-dashed border-gray-600 p-6 text-center text-sm text-gray-400">
               No stories published yet. Yours could be the first.
             </div>
           )}
-          {stories.map((story, i) => (
+          {stories.map((story) => (
             <blockquote
-              key={`${story.name}-${i}`}
+              key={story.id}
               className="rounded-lg bg-gray-900/60 border border-gray-700 p-4"
             >
-              <p className="text-gray-200 text-sm whitespace-pre-line">{story.text}</p>
+              <p className="text-gray-200 text-sm whitespace-pre-line">{story.body}</p>
               <footer className="mt-3 text-xs text-purple-300">
                 — {story.name}
-                {story.date ? ` · ${story.date}` : ''}
+                {story.created_at ? ` · ${formatDate(story.created_at)}` : ''}
               </footer>
             </blockquote>
           ))}

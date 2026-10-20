@@ -10,11 +10,12 @@ import NavigationPortal from './components/NavigationPortal';
 import SafetyDashboard from './components/SafetyDashboard';
 import ConnectPage from './components/ConnectPage';
 import SponsorshipPage from './components/SponsorshipPage';
+import FeedbackPage from './components/FeedbackPage';
 import Footer from './components/Footer';
 import EmailCapture from './components/EmailCapture';
 import NotFound from './components/NotFound';
 
-type ActiveLab = 'home' | 'rate' | 'place' | 'population' | 'frequency' | 'connect' | 'sponsor';
+type ActiveLab = 'home' | 'rate' | 'place' | 'population' | 'frequency' | 'feedback' | 'connect' | 'sponsor';
 
 function App() {
   const [activeLab, setActiveLab] = useState<ActiveLab>('home');
@@ -65,6 +66,8 @@ function App() {
         return <PopulationLab onSessionUpdate={setSessionData} />;
       case 'frequency':
         return <FrequencyLab onSessionUpdate={setSessionData} />;
+      case 'feedback':
+        return <FeedbackPage />;
       case 'connect':
         return <ConnectPage />;
       case 'sponsor':
@@ -122,7 +125,7 @@ function App() {
 
       {['home', 'connect', 'sponsor'].includes(activeLab) && !isUnknownPath && <EmailCapture />}
 
-      <Footer />
+      <Footer onNavigate={(lab) => setActiveLab(lab as ActiveLab)} />
 
       {/* Enhanced Control Buttons - Only show for non-social pages */}
       {!['connect', 'sponsor'].includes(activeLab) && (

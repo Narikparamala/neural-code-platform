@@ -1,287 +1,663 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>CosmicSpirit0 — Ops Console</title>
-    <meta name="robots" content="noindex" />
-    <style>
-      :root {
-        color-scheme: dark;
-        --bg: #0b0a14;
-        --panel: rgba(23, 20, 38, 0.85);
-        --line: rgba(148, 130, 220, 0.22);
-        --text: #ece9ff;
-        --muted: #a5a0c4;
-        --purple: #a855f7;
-        --green: #34d399;
-        --red: #f87171;
-        --blue: #38bdf8;
-      }
-      * { box-sizing: border-box; }
-      body {
-        margin: 0;
-        font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
-        color: var(--text);
-        background:
-          radial-gradient(1100px 600px at 85% -10%, rgba(168, 85, 247, 0.28), transparent 60%),
-          radial-gradient(900px 500px at 0% 100%, rgba(56, 189, 248, 0.18), transparent 60%),
-          var(--bg);
-        min-height: 100vh;
-        padding: 28px 18px 60px;
-      }
-      .wrap { max-width: 1080px; margin: 0 auto; }
-      header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 24px; }
-      h1 { font-size: clamp(22px, 4vw, 32px); margin: 0; }
-      h1 span { background: linear-gradient(135deg, #a855f7, #ec4899); -webkit-background-clip: text; background-clip: text; color: transparent; }
-      .sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
-      .pill { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--line); background: rgba(168, 85, 247, 0.1); font-size: 12px; }
-      .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
-      .dot.ok { background: var(--green); box-shadow: 0 0 10px rgba(52, 211, 153, 0.8); }
-      .dot.bad { background: var(--red); }
-      .grid { display: grid; gap: 16px; }
-      .cols-4 { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
-      .cols-2 { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
-      .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 18px; backdrop-filter: blur(8px); }
-      .card h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); margin: 0 0 14px; font-weight: 600; }
-      .metric { font-size: 30px; font-weight: 700; line-height: 1.1; }
-      .metric.purple { color: var(--purple); }
-      .metric.blue { color: var(--blue); }
-      .metric.green { color: var(--green); }
-      .metric.small { font-size: 20px; }
-      .label { color: var(--muted); font-size: 13px; margin-top: 6px; }
-      a { color: #c4b5fd; }
-      .links { display: grid; gap: 10px; }
-      .links a {
-        display: flex; align-items: center; justify-content: space-between; gap: 10px;
-        padding: 12px 14px; min-height: 46px; border-radius: 10px;
-        border: 1px solid var(--line); background: rgba(255, 255, 255, 0.02);
-        text-decoration: none; color: var(--text); font-size: 14px;
-      }
-      .links a:hover { border-color: rgba(168, 85, 247, 0.6); background: rgba(168, 85, 247, 0.1); }
-      .links a span { color: var(--muted); font-size: 12px; }
-      input, textarea {
-        width: 100%; padding: 12px 14px; min-height: 46px; border-radius: 10px;
-        border: 1px solid var(--line); background: rgba(10, 8, 20, 0.8); color: var(--text);
-        font: inherit; font-size: 14px;
-      }
-      textarea { min-height: 120px; resize: vertical; }
-      label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 6px; }
-      button {
-        display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-        min-height: 46px; padding: 0 20px; border-radius: 10px; border: 0;
-        background: linear-gradient(135deg, #8b5cf6, #d946ef); color: #fff;
-        font-weight: 600; font-size: 14px; cursor: pointer;
-      }
-      button:hover { filter: brightness(1.1); }
-      button.ghost { background: transparent; border: 1px solid var(--line); color: var(--text); }
-      pre {
-        white-space: pre-wrap; word-break: break-word; background: rgba(0, 0, 0, 0.45);
-        border: 1px solid var(--line); border-radius: 10px; padding: 14px; font-size: 12px;
-        color: #d8d4f0; max-height: 260px; overflow: auto;
-      }
-      .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-      .muted { color: var(--muted); font-size: 12px; }
-      .note { border-left: 3px solid var(--purple); padding: 10px 14px; background: rgba(168, 85, 247, 0.08); border-radius: 0 10px 10px 0; font-size: 13px; color: #d6d1ee; }
-      footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: center; }
-      .ok-text { color: var(--green); }
-      .bad-text { color: var(--red); }
-    </style>
-  </head>
-  <body>
-    <div class="wrap">
-      <header>
-        <div>
-          <h1><span>CosmicSpirit0</span> Ops Console</h1>
-          <div class="sub">Read-only operations view. Publishing happens in GitHub, YouTube Studio and Telegram.</div>
-        </div>
-        <div class="pill"><span class="dot" id="site-dot"></span><span id="site-pill">checking site…</span></div>
-      </header>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex,nofollow" />
+<title>Admin · CosmicSpirit0</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+<style>
+  :root {
+    --bg: #0b0f1a;
+    --panel: #111827;
+    --panel-2: #0f172a;
+    --line: #1f2937;
+    --text: #e5e7eb;
+    --muted: #9ca3af;
+    --purple: #9333ea;
+    --purple-2: #7e22ce;
+    --green: #22c55e;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(1200px 600px at 20% -10%, #2a1450 0%, transparent 60%), var(--bg);
+    color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh;
+  }
+  a { color: #c4b5fd; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 0 16px; }
 
-      <div class="grid cols-4" style="margin-bottom: 16px">
-        <div class="card">
-          <h2>Live site</h2>
-          <div class="metric small" id="site-status">—</div>
-          <div class="label" id="site-time">—</div>
-        </div>
-        <div class="card">
-          <h2>Stars</h2>
-          <div class="metric purple" id="stars">—</div>
-          <div class="label" id="forks">— forks</div>
-        </div>
-        <div class="card">
-          <h2>Last commit</h2>
-          <div class="metric small" id="commit-date">—</div>
-          <div class="label" id="commit-msg">—</div>
-        </div>
-        <div class="card">
-          <h2>Last deploy</h2>
-          <div class="metric small" id="deploy-status">—</div>
-          <div class="label" id="deploy-time">—</div>
-        </div>
-      </div>
+  header.top {
+    border-bottom: 1px solid var(--line);
+    background: rgba(17, 24, 39, .8);
+    backdrop-filter: blur(8px);
+    position: sticky; top: 0; z-index: 20;
+  }
+  .top-inner { display: flex; align-items: center; gap: 12px; min-height: 64px; }
+  .brand { font-weight: 700; font-size: 18px; background: linear-gradient(90deg,#c084fc,#f472b6); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .brand small { display: block; font-size: 11px; color: var(--muted); font-weight: 500; background: none; -webkit-text-fill-color: var(--muted); }
+  .spacer { flex: 1; }
+  .who { font-size: 13px; color: var(--muted); }
 
-      <div class="grid cols-2">
-        <section class="card">
-          <h2>Operations</h2>
-          <div class="links">
-            <a href="https://github.com/Narikparamala/neural-code-platform" target="_blank" rel="noopener">
-              Source repository <span>GitHub</span>
-            </a>
-            <a href="https://github.com/Narikparamala/neural-code-platform/actions" target="_blank" rel="noopener">
-              Deploy pipeline <span>Actions</span>
-            </a>
-            <a href="https://studio.youtube.com/channel/UCTvSTsv46Sz_jt1sgk0KQLA/videos/upload" target="_blank" rel="noopener">
-              Upload a video <span>YouTube Studio</span>
-            </a>
-            <a href="https://web.telegram.org/a/" target="_blank" rel="noopener">
-              Post an update <span>Telegram Web</span>
-            </a>
-            <a href="https://mail.google.com/mail/u/0/#search/CosmicSpirit0" target="_blank" rel="noopener">
-              Subscribers &amp; stories inbox <span>Gmail</span>
-            </a>
-            <a href="https://narikparamala.github.io/neural-code-platform/" target="_blank" rel="noopener">
-              Open the live platform <span>Public site</span>
-            </a>
-          </div>
-        </section>
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 40px; padding: 8px 14px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--panel); color: var(--text); text-decoration: none; font-weight: 600; font-size: 14px;
+  }
+  .btn:hover { border-color: #374151; background: #1a2437; }
+  .btn.primary { background: var(--purple); border-color: var(--purple); color: #fff; }
+  .btn.primary:hover { background: var(--purple-2); }
+  .btn.danger { background: transparent; border-color: rgba(239,68,68,.4); color: #fca5a5; }
+  .btn.danger:hover { background: rgba(239,68,68,.12); }
+  .btn.small { min-height: 32px; padding: 4px 10px; font-size: 13px; border-radius: 8px; }
+  .btn:disabled { opacity: .55; cursor: not-allowed; }
 
-        <section class="card">
-          <h2>Story publisher</h2>
-          <p class="muted" style="margin-top:0">
-            Paste an approved story, copy the generated JSON, and add it to
-            <code>public/stories.json</code> in GitHub. The site publishes it on the next deploy.
-          </p>
-          <label for="story-name">Name shown on the wall</label>
-          <input id="story-name" placeholder="e.g. Aditya" maxlength="60" />
-          <label for="story-text">Story text</label>
-          <textarea id="story-text" placeholder="What changed for you after using a lab?"></textarea>
-          <div class="row" style="margin-top: 12px">
-            <button id="generate">Generate JSON</button>
-            <button class="ghost" id="copy">Copy</button>
-            <a class="muted" href="https://github.com/Narikparamala/neural-code-platform/edit/main/public/stories.json" target="_blank" rel="noopener">
-              Edit stories.json
-            </a>
-          </div>
-          <pre id="story-output" style="margin-top: 14px">The generated entry appears here.</pre>
-        </section>
-      </div>
+  /* login */
+  .login-wrap { max-width: 420px; margin: 10vh auto 0; padding: 0 16px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; }
+  .card h1 { margin: 0 0 4px; font-size: 22px; }
+  .card p.sub { margin: 0 0 18px; color: var(--muted); font-size: 14px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 6px; }
+  input[type=email], input[type=password], input[type=search], input[type=text], select, textarea {
+    width: 100%; min-height: 44px; padding: 10px 12px; border-radius: 10px;
+    border: 1px solid #374151; background: #0b1220; color: var(--text); outline: none;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(147,51,234,.25); }
+  .err { color: #fca5a5; font-size: 13px; margin-top: 10px; min-height: 20px; }
 
-      <section class="card" style="margin-top: 16px">
-        <h2>How each piece works</h2>
-        <div class="note">
-          <strong>Newsletter &amp; stories</strong> are delivered by FormSubmit to the project inbox — no
-          database, no subscription fee. The first submission triggers a one-time activation email;
-          click it once and every later submission lands automatically.
+  /* tabs */
+  nav.tabs { display: flex; gap: 6px; overflow-x: auto; padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .tab {
+    border: 1px solid transparent; background: transparent; color: var(--muted);
+    padding: 8px 14px; min-height: 40px; border-radius: 999px; font-weight: 600; white-space: nowrap;
+  }
+  .tab:hover { color: var(--text); background: #172033; }
+  .tab[aria-selected=true] { background: var(--purple); color: #fff; }
+  .tab .pill { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 999px; background: rgba(255,255,255,.18); font-size: 11px; }
+
+  section.panel { padding: 20px 0 60px; }
+  .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+  .stat { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
+  .stat .n { font-size: 30px; font-weight: 800; line-height: 1.1; }
+  .stat .l { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .stat.warn .n { color: var(--amber); }
+  .stat.good .n { color: var(--green); }
+
+  .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 18px 0 10px; }
+  .toolbar .grow { flex: 1 1 220px; }
+  h2.sec { font-size: 18px; margin: 22px 0 8px; }
+  .hint { color: var(--muted); font-size: 13px; }
+
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); }
+  table { width: 100%; border-collapse: collapse; min-width: 680px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 14px; }
+  th { background: var(--panel-2); color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; position: sticky; top: 0; }
+  tr:last-child td { border-bottom: 0; }
+  td.actions { white-space: nowrap; }
+  td.actions .btn { margin: 2px 2px 2px 0; }
+  .muted { color: var(--muted); }
+  .nowrap { white-space: nowrap; }
+  .msg { max-width: 520px; white-space: pre-line; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+  .badge.new { background: #374151; color: #d1d5db; }
+  .badge.planned { background: rgba(245,158,11,.18); color: #fbbf24; }
+  .badge.in_progress { background: rgba(59,130,246,.18); color: #93c5fd; }
+  .badge.shipped { background: rgba(34,197,94,.18); color: #86efac; }
+  .badge.declined { background: #374151; color: #9ca3af; }
+  .badge.pending { background: rgba(245,158,11,.18); color: #fbbf24; }
+  .badge.live { background: rgba(34,197,94,.18); color: #86efac; }
+
+  .empty { text-align: center; color: var(--muted); padding: 34px 16px; border: 1px dashed #374151; border-radius: var(--radius); }
+  .loading { color: var(--muted); padding: 20px 0; }
+
+  #toast {
+    position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%) translateY(20px);
+    background: #111827; border: 1px solid #374151; color: var(--text);
+    padding: 11px 16px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.5);
+    opacity: 0; pointer-events: none; transition: .25s ease; z-index: 50; max-width: 90vw;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #toast.ok { border-color: rgba(34,197,94,.5); }
+  #toast.bad { border-color: rgba(239,68,68,.5); }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap top-inner">
+    <div class="brand">CosmicSpirit0 <small>Neural Code Platform · admin</small></div>
+    <div class="spacer"></div>
+    <span class="who" id="who"></span>
+    <a class="btn small" href="./" target="_blank" rel="noopener">View site</a>
+    <button class="btn small" id="signout" hidden>Sign out</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- LOGIN -->
+  <div class="login-wrap" id="login-view">
+    <div class="card">
+      <h1>Admin sign in</h1>
+      <p class="sub">Only the site owner account can read or change submissions.</p>
+      <form id="login-form" novalidate>
+        <label for="email">Email</label>
+        <input id="email" type="email" autocomplete="username" required placeholder="you@example.com" />
+        <label for="password">Password</label>
+        <input id="password" type="password" autocomplete="current-password" required placeholder="••••••••" />
+        <div style="margin-top:16px">
+          <button class="btn primary" type="submit" id="login-btn" style="width:100%">Sign in</button>
         </div>
-        <div class="note" style="margin-top: 10px">
-          <strong>Community accounts</strong> are not enabled yet. Real authentication needs a free
-          Supabase project (or similar); until that exists, the Telegram channel is the community hub
-          and stories are moderated through this console.
-        </div>
-      </section>
-
-      <footer>CosmicSpirit0 Ops Console · public data only · no credentials stored</footer>
+        <p class="err" id="login-err" role="alert"></p>
+      </form>
+      <p class="hint" style="margin-bottom:0">Forgot the password? Reset it in Supabase → Authentication → Users.</p>
     </div>
+  </div>
 
-    <script>
-      const REPO = 'Narikparamala/neural-code-platform';
-      const SITE = 'https://narikparamala.github.io/neural-code-platform/';
-      const BASE = 'https://narikparamala.github.io/neural-code-platform';
+  <!-- APP -->
+  <div id="app-view" hidden>
+    <nav class="tabs" role="tablist" aria-label="Admin sections">
+      <button class="tab" role="tab" data-tab="overview" aria-selected="true">Overview</button>
+      <button class="tab" role="tab" data-tab="subscribers" aria-selected="false">Subscribers <span class="pill" id="pill-subs">0</span></button>
+      <button class="tab" role="tab" data-tab="stories" aria-selected="false">Stories <span class="pill" id="pill-stories">0</span></button>
+      <button class="tab" role="tab" data-tab="reviews" aria-selected="false">Reviews <span class="pill" id="pill-reviews">0</span></button>
+      <button class="tab" role="tab" data-tab="suggestions" aria-selected="false">Suggestions <span class="pill" id="pill-suggestions">0</span></button>
+    </nav>
 
-      const $ = (id) => document.getElementById(id);
-      const fmt = (iso) => {
-        if (!iso) return '—';
-        const d = new Date(iso);
-        return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
-      };
+    <section class="panel" id="tab-overview">
+      <div class="grid" id="stats"></div>
+      <h2 class="sec">Needs your attention</h2>
+      <div id="attention" class="grid"></div>
+      <h2 class="sec">Latest signups</h2>
+      <div id="latest-subs" class="table-wrap"></div>
+      <h2 class="sec">Ops</h2>
+      <div class="toolbar">
+        <a class="btn" href="https://github.com/Narikparamala/neural-code-platform/actions" target="_blank" rel="noopener">Deploy runs</a>
+        <a class="btn" href="https://github.com/Narikparamala/neural-code-platform" target="_blank" rel="noopener">Source repo</a>
+        <a class="btn" href="https://supabase.com/dashboard/project/jdwiggwqsyeopcgrovjm" target="_blank" rel="noopener">Supabase</a>
+        <a class="btn" href="https://www.youtube.com/@cosmicspirit0" target="_blank" rel="noopener">YouTube</a>
+      </div>
+      <p class="hint">Public content is moderated here: publish a story or approve a review to make it appear on the site instantly.</p>
+    </section>
 
-      async function siteCheck() {
-        const start = performance.now();
-        try {
-          const res = await fetch(SITE + '?t=' + Date.now(), { cache: 'no-store' });
-          const ms = Math.round(performance.now() - start);
-          $('site-dot').className = 'dot ' + (res.ok ? 'ok' : 'bad');
-          $('site-pill').textContent = res.ok ? 'site online' : 'site returning ' + res.status;
-          $('site-status').innerHTML = res.ok
-            ? '<span class="ok-text">Online</span>'
-            : '<span class="bad-text">HTTP ' + res.status + '</span>';
-          $('site-time').textContent = res.ok ? ms + ' ms response' : 'checked ' + fmt(new Date().toISOString());
-        } catch (e) {
-          $('site-dot').className = 'dot bad';
-          $('site-pill').textContent = 'site unreachable';
-          $('site-status').innerHTML = '<span class="bad-text">Unreachable</span>';
-          $('site-time').textContent = 'network error';
-        }
-      }
+    <section class="panel" id="tab-subscribers" hidden>
+      <div class="toolbar">
+        <input class="grow" id="sub-search" type="search" placeholder="Search email…" aria-label="Search subscribers" />
+        <button class="btn" id="sub-export">Export CSV</button>
+        <button class="btn" id="sub-refresh">Refresh</button>
+      </div>
+      <div id="sub-list"></div>
+    </section>
 
-      async function repoStats() {
-        try {
-          const r = await fetch('https://api.github.com/repos/' + REPO);
-          if (!r.ok) throw new Error('repo ' + r.status);
-          const d = await r.json();
-          $('stars').textContent = d.stargazers_count;
-          $('forks').textContent = d.forks_count + ' forks · ' + d.open_issues_count + ' open issues';
-          $('commit-date').textContent = fmt(d.pushed_at);
-          $('commit-msg').textContent = d.visibility + ' · ' + d.default_branch;
-        } catch (e) {
-          $('stars').textContent = '—';
-          $('forks').textContent = 'GitHub API unavailable';
-        }
-      }
+    <section class="panel" id="tab-stories" hidden>
+      <div class="toolbar">
+        <select id="story-filter" aria-label="Filter stories">
+          <option value="pending">Pending review</option>
+          <option value="published">Published</option>
+          <option value="all">All</option>
+        </select>
+        <button class="btn" id="story-refresh">Refresh</button>
+      </div>
+      <div id="story-list"></div>
+    </section>
 
-      async function deployStats() {
-        try {
-          const r = await fetch('https://api.github.com/repos/' + REPO + '/actions/runs?per_page=1');
-          if (!r.ok) throw new Error('runs ' + r.status);
-          const d = await r.json();
-          const run = d.workflow_runs && d.workflow_runs[0];
-          if (!run) return;
-          const status = run.status === 'completed' ? run.conclusion : run.status;
-          $('deploy-status').innerHTML = status === 'success'
-            ? '<span class="ok-text">Success</span>'
-            : status === 'in_progress'
-              ? '<span style="color:#38bdf8">Running</span>'
-              : '<span class="bad-text">' + status + '</span>';
-          $('deploy-time').textContent = fmt(run.updated_at) + ' · ' + run.name;
-        } catch (e) {
-          $('deploy-status').textContent = '—';
-          $('deploy-time').textContent = 'Actions API unavailable';
-        }
-      }
+    <section class="panel" id="tab-reviews" hidden>
+      <div class="toolbar">
+        <select id="review-filter" aria-label="Filter reviews">
+          <option value="pending">Pending review</option>
+          <option value="approved">Approved</option>
+          <option value="all">All</option>
+        </select>
+        <button class="btn" id="review-refresh">Refresh</button>
+      </div>
+      <div id="review-list"></div>
+    </section>
 
-      function generate() {
-        const name = ($('story-name').value || 'Anonymous').trim().slice(0, 60);
-        const text = $('story-text').value.trim();
-        if (text.length < 10) {
-          $('story-output').textContent = 'Write at least a sentence first.';
-          return;
-        }
-        const entry = {
-          name: name,
-          text: text,
-          date: new Date().toISOString().slice(0, 10)
-        };
-        $('story-output').textContent = JSON.stringify([entry], null, 2);
-      }
+    <section class="panel" id="tab-suggestions" hidden>
+      <div class="toolbar">
+        <select id="sug-filter" aria-label="Filter suggestions">
+          <option value="all">All statuses</option>
+          <option value="new">New</option>
+          <option value="planned">Planned</option>
+          <option value="in_progress">In progress</option>
+          <option value="shipped">Shipped</option>
+          <option value="declined">Not planned</option>
+        </select>
+        <button class="btn" id="sug-refresh">Refresh</button>
+      </div>
+      <div id="sug-list"></div>
+    </section>
+  </div>
+</main>
 
-      async function copyOut() {
-        const out = $('story-output').textContent;
-        try {
-          await navigator.clipboard.writeText(out);
-          $('copy').textContent = 'Copied';
-          setTimeout(() => ($('copy').textContent = 'Copy'), 1500);
-        } catch {
-          $('copy').textContent = 'Select & copy manually';
-        }
-      }
+<div id="toast" role="status" aria-live="polite"></div>
 
-      $('generate').addEventListener('click', generate);
-      $('copy').addEventListener('click', copyOut);
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+(function () {
+  "use strict";
 
-      siteCheck();
-      repoStats();
-      deployStats();
-    </script>
-  </body>
+  var SUPABASE_URL = "https://jdwiggwqsyeopcgrovjm.supabase.co";
+  var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impkd2lnZ3dxc3llb3BjZ3JvdmptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1MDI0MzUsImV4cCI6MjEwODA3ODQzNX0.uxjWHFzD79enmWoJHsWaAAP_HWYhd2MHyReZyoNlLog";
+  var ADMIN_EMAIL = "narikparamala@gmail.com";
+
+  var db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+  });
+
+  var state = {
+    subscribers: [],
+    stories: [],
+    reviews: [],
+    suggestions: [],
+    tab: "overview"
+  };
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  function esc(v) {
+    return String(v == null ? "" : v)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return "";
+    try {
+      return new Date(iso).toLocaleString(undefined, {
+        year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"
+      });
+    } catch (e) { return iso; }
+  }
+
+  var toastTimer = null;
+  function toast(msg, kind) {
+    var el = $("toast");
+    el.textContent = msg;
+    el.className = "show " + (kind || "");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.className = ""; }, 3200);
+  }
+
+  function errorText(error) {
+    if (!error) return "Unknown error";
+    if (String(error.message || "").indexOf("Failed to fetch") >= 0) return "Network error — check your connection.";
+    return error.message || String(error);
+  }
+
+  /* ---------------- auth ---------------- */
+
+  function showLogin(message) {
+    $("app-view").hidden = true;
+    $("login-view").hidden = false;
+    $("signout").hidden = true;
+    $("who").textContent = "";
+    $("login-err").textContent = message || "";
+  }
+
+  function showApp(session) {
+    $("login-view").hidden = true;
+    $("app-view").hidden = false;
+    $("signout").hidden = false;
+    $("who").textContent = session.user.email || "";
+    loadAll();
+  }
+
+  $("login-form").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    var email = $("email").value.trim();
+    var password = $("password").value;
+    $("login-err").textContent = "";
+    $("login-btn").disabled = true;
+    $("login-btn").textContent = "Signing in…";
+
+    var res = await db.auth.signInWithPassword({ email: email, password: password });
+    $("login-btn").disabled = false;
+    $("login-btn").textContent = "Sign in";
+
+    if (res.error) {
+      $("login-err").textContent = res.error.message || "Sign in failed.";
+      return;
+    }
+    if ((res.data.user && res.data.user.email || "").toLowerCase() !== ADMIN_EMAIL) {
+      await db.auth.signOut();
+      $("login-err").textContent = "This account is not the site owner.";
+      return;
+    }
+    $("password").value = "";
+    showApp(res.data.session);
+  });
+
+  $("signout").addEventListener("click", async function () {
+    await db.auth.signOut();
+    showLogin("Signed out.");
+  });
+
+  db.auth.getSession().then(function (res) {
+    var session = res.data && res.data.session;
+    if (session && session.user) {
+      if ((session.user.email || "").toLowerCase() === ADMIN_EMAIL) showApp(session);
+      else showLogin("This account is not the site owner.");
+    } else {
+      showLogin("");
+    }
+  });
+
+  /* ---------------- tabs ---------------- */
+
+  function setTab(name) {
+    state.tab = name;
+    Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (btn) {
+      btn.setAttribute("aria-selected", btn.dataset.tab === name ? "true" : "false");
+    });
+    ["overview", "subscribers", "stories", "reviews", "suggestions"].forEach(function (t) {
+      $("tab-" + t).hidden = t !== name;
+    });
+    if (name === "overview") renderOverview();
+    if (name === "subscribers") renderSubscribers();
+    if (name === "stories") renderStories();
+    if (name === "reviews") renderReviews();
+    if (name === "suggestions") renderSuggestions();
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (btn) {
+    btn.addEventListener("click", function () { setTab(btn.dataset.tab); });
+  });
+
+  /* ---------------- data ---------------- */
+
+  async function loadAll() {
+    await Promise.all([loadSubscribers(), loadStories(), loadReviews(), loadSuggestions()]);
+    renderOverview();
+    if (state.tab !== "overview") setTab(state.tab);
+  }
+
+  async function loadSubscribers() {
+    var res = await db.from("subscribers").select("id,email,source,created_at").order("created_at", { ascending: false });
+    state.subscribers = res.error ? [] : res.data || [];
+    if (res.error) toast("Subscribers: " + errorText(res.error), "bad");
+    $("pill-subs").textContent = state.subscribers.length;
+  }
+
+  async function loadStories() {
+    var res = await db.from("stories").select("id,name,body,published,created_at").order("created_at", { ascending: false });
+    state.stories = res.error ? [] : res.data || [];
+    if (res.error) toast("Stories: " + errorText(res.error), "bad");
+    $("pill-stories").textContent = state.stories.filter(function (s) { return !s.published; }).length;
+  }
+
+  async function loadReviews() {
+    var res = await db.from("reviews").select("id,name,rating,message,approved,created_at").order("created_at", { ascending: false });
+    state.reviews = res.error ? [] : res.data || [];
+    if (res.error) toast("Reviews: " + errorText(res.error), "bad");
+    $("pill-reviews").textContent = state.reviews.filter(function (r) { return !r.approved; }).length;
+  }
+
+  async function loadSuggestions() {
+    var res = await db.from("suggestions").select("id,name,title,details,status,created_at").order("created_at", { ascending: false });
+    state.suggestions = res.error ? [] : res.data || [];
+    if (res.error) toast("Suggestions: " + errorText(res.error), "bad");
+    $("pill-suggestions").textContent = state.suggestions.filter(function (s) { return s.status === "new"; }).length;
+  }
+
+  /* ---------------- overview ---------------- */
+
+  function statCard(n, label, tone) {
+    return '<div class="stat ' + (tone || "") + '"><div class="n">' + esc(n) + '</div><div class="l">' + esc(label) + "</div></div>";
+  }
+
+  function renderOverview() {
+    var pendingStories = state.stories.filter(function (s) { return !s.published; }).length;
+    var pendingReviews = state.reviews.filter(function (r) { return !r.approved; }).length;
+    var newIdeas = state.suggestions.filter(function (s) { return s.status === "new"; }).length;
+    var approvedReviews = state.reviews.filter(function (r) { return r.approved; });
+    var avg = approvedReviews.length
+      ? (approvedReviews.reduce(function (a, r) { return a + r.rating; }, 0) / approvedReviews.length).toFixed(1)
+      : "—";
+
+    $("stats").innerHTML =
+      statCard(state.subscribers.length, "Newsletter subscribers", "good") +
+      statCard(pendingStories, "Stories waiting", pendingStories ? "warn" : "") +
+      statCard(pendingReviews, "Reviews waiting", pendingReviews ? "warn" : "") +
+      statCard(newIdeas, "New suggestions", newIdeas ? "warn" : "") +
+      statCard(avg, "Average rating", "") +
+      statCard(state.stories.filter(function (s) { return s.published; }).length, "Published stories", "");
+
+    $("attention").innerHTML =
+      '<div class="card"><strong>' + pendingStories + '</strong> ' + (pendingStories === 1 ? "story needs" : "stories need") + ' review. <div style="margin-top:10px"><button class="btn small" data-goto="stories">Open stories</button></div></div>' +
+      '<div class="card"><strong>' + pendingReviews + '</strong> ' + (pendingReviews === 1 ? "review needs" : "reviews need") + ' approval. <div style="margin-top:10px"><button class="btn small" data-goto="reviews">Open reviews</button></div></div>' +
+      '<div class="card"><strong>' + newIdeas + '</strong> new ' + (newIdeas === 1 ? "idea" : "ideas") + ' on the public board. <div style="margin-top:10px"><button class="btn small" data-goto="suggestions">Open board</button></div></div>';
+
+    Array.prototype.forEach.call($("attention").querySelectorAll("[data-goto]"), function (b) {
+      b.addEventListener("click", function () { setTab(b.dataset.goto); });
+    });
+
+    var latest = state.subscribers.slice(0, 5);
+    $("latest-subs").innerHTML = latest.length
+      ? '<table><thead><tr><th>Email</th><th>Source</th><th>Joined</th></tr></thead><tbody>' +
+        latest.map(function (s) {
+          return "<tr><td>" + esc(s.email) + "</td><td class=\"muted\">" + esc(s.source || "site") + "</td><td class=\"nowrap muted\">" + esc(fmtDate(s.created_at)) + "</td></tr>";
+        }).join("") + "</tbody></table>"
+      : '<div class="empty">No signups yet. Share the newsletter link to get the first one.</div>';
+  }
+
+  /* ---------------- subscribers ---------------- */
+
+  function renderSubscribers() {
+    var q = ($("sub-search").value || "").toLowerCase().trim();
+    var rows = state.subscribers.filter(function (s) { return !q || s.email.toLowerCase().indexOf(q) >= 0; });
+
+    $("sub-list").innerHTML = rows.length
+      ? '<div class="table-wrap"><table><thead><tr><th>Email</th><th>Source</th><th>Joined</th><th></th></tr></thead><tbody>' +
+        rows.map(function (s) {
+          return "<tr><td>" + esc(s.email) + "</td><td class=\"muted\">" + esc(s.source || "site") + "</td><td class=\"nowrap muted\">" + esc(fmtDate(s.created_at)) +
+            "</td><td class=\"actions\"><button class=\"btn small danger\" data-del-sub=\"" + esc(s.id) + "\">Delete</button></td></tr>";
+        }).join("") + "</tbody></table></div>"
+      : '<div class="empty">' + (q ? "No subscriber matches that search." : "No subscribers yet.") + "</div>";
+
+    Array.prototype.forEach.call($("sub-list").querySelectorAll("[data-del-sub]"), function (b) {
+      b.addEventListener("click", async function () {
+        if (!confirm("Delete this subscriber?")) return;
+        var res = await db.from("subscribers").delete().eq("id", b.dataset.delSub);
+        if (res.error) return toast(errorText(res.error), "bad");
+        toast("Subscriber deleted", "ok");
+        await loadSubscribers();
+        renderSubscribers();
+      });
+    });
+  }
+
+  $("sub-search").addEventListener("input", renderSubscribers);
+  $("sub-refresh").addEventListener("click", async function () { await loadSubscribers(); renderSubscribers(); toast("Refreshed", "ok"); });
+
+  $("sub-export").addEventListener("click", function () {
+    if (!state.subscribers.length) return toast("No subscribers to export", "bad");
+    var rows = [["email", "source", "created_at"]].concat(state.subscribers.map(function (s) {
+      return [s.email, s.source || "site", s.created_at];
+    }));
+    var csv = rows.map(function (r) {
+      return r.map(function (c) { return '"' + String(c == null ? "" : c).replace(/"/g, '""') + '"'; }).join(",");
+    }).join("\r\n");
+    var blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "cosmicspirit0-subscribers-" + new Date().toISOString().slice(0, 10) + ".csv";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+  });
+
+  /* ---------------- stories ---------------- */
+
+  function renderStories() {
+    var filter = $("story-filter").value;
+    var rows = state.stories.filter(function (s) {
+      if (filter === "pending") return !s.published;
+      if (filter === "published") return s.published;
+      return true;
+    });
+
+    $("story-list").innerHTML = rows.length
+      ? '<div class="table-wrap"><table><thead><tr><th>Story</th><th>Author</th><th>Status</th><th>Submitted</th><th></th></tr></thead><tbody>' +
+        rows.map(function (s) {
+          return "<tr><td class=\"msg\">" + esc(s.body) + "</td><td class=\"nowrap\">" + esc(s.name) + "</td><td>" +
+            (s.published ? '<span class="badge live">Live</span>' : '<span class="badge pending">Pending</span>') +
+            "</td><td class=\"nowrap muted\">" + esc(fmtDate(s.created_at)) + "</td><td class=\"actions\">" +
+            (s.published
+              ? '<button class="btn small" data-unpub="' + esc(s.id) + '">Unpublish</button>'
+              : '<button class="btn small primary" data-pub="' + esc(s.id) + '">Publish</button>') +
+            '<button class="btn small danger" data-del-story="' + esc(s.id) + '">Delete</button></td></tr>';
+        }).join("") + "</tbody></table></div>"
+      : '<div class="empty">Nothing here yet.</div>';
+
+    $("story-list").querySelectorAll("[data-pub]").forEach(function (b) {
+      b.addEventListener("click", async function () {
+        b.disabled = true;
+        var res = await db.from("stories").update({ published: true }).eq("id", b.dataset.pub);
+        b.disabled = false;
+        if (res.error) return toast(errorText(res.error), "bad");
+        toast("Story published", "ok");
+        await loadStories(); renderStories();
+      });
+    });
+    $("story-list").querySelectorAll("[data-unpub]").forEach(function (b) {
+      b.addEventListener("click", async function () {
+        b.disabled = true;
+        var res = await db.from("stories").update({ published: false }).eq("id", b.dataset.unpub);
+        b.disabled = false;
+        if (res.error) return toast(errorText(res.error), "bad");
+        toast("Story unpublished", "ok");
+        await loadStories(); renderStories();
+      });
+    });
+    $("story-list").querySelectorAll("[data-del-story]").forEach(function (b) {
+      b.addEventListener("click", async function () {
+        if (!confirm("Delete this story permanently?")) return;
+        var res = await db.from("stories").delete().eq("id", b.dataset.delStory);
+        if (res.error) return toast(errorText(res.error), "bad");
+        toast("Story deleted", "ok");
+        await loadStories(); renderStories();
+      });
+    });
+  }
+
+  $("story-filter").addEventListener("change", renderStories);
+  $("story-refresh").addEventListener("click", async function () { await loadStories(); renderStories(); toast("Refreshed", "ok"); });
+
+  /* ---------------- reviews ---------------- */
+
+  function renderReviews() {
+    var filter = $("review-filter").value;
+    var rows = state.reviews.filter(function (r) {
+      if (filter === "pending") return !r.approved;
+      if (filter === "approved") return r.approved;
+      return true;
+    });
+
+    $("review-list").innerHTML = rows.length
+      ? '<div class="table-wrap"><table><thead><tr><th>Rating</th><th>Review</th><th>Author</th><th>Status</th><th>Submitted</th><th></th></tr></thead><tbody>' +
+        rows.map(function (r) {
+          return "<tr><td class=\"nowrap\">" + "★".repeat(r.rating) + "<span class=\"muted\">" + "☆".repeat(5 - r.rating) + "</span></td>" +
+            "<td class=\"msg\">" + esc(r.message) + "</td><td class=\"nowrap\">" + esc(r.name) + "</td><td>" +
+            (r.approved ? '<span class="badge live">Approved</span>' : '<span class="badge pending">Pending</span>') +
+            "</td><td class=\"nowrap muted\">" + esc(fmtDate(r.created_at)) + "</td><td class=\"actions\">" +
+            (r.approved
+              ? '<button class="btn small" data-unapprove="' + esc(r.id) + '">Unapprove</button>'
+              : '<button class="btn small primary" data-approve="' + esc(r.id) + '">Approve</button>') +
+            '<button class="btn small danger" data-del-review="' + esc(r.id) + '">Delete</button></td></tr>';
+        }).join("") + "</tbody></table></div>"
+      : '<div class="empty">Nothing here yet.</div>';
+
+    $("review-list").querySelectorAll("[data-approve]").forEach(function (b) {
+      b.addEventListener("click", async function () {
+        b.disabled = true;
+        var res = await db.from("reviews").update({ approved: true }).eq("id", b.dataset.approve);
+        b.disabled = false;
+        if (res.error) return toast(errorText(res.error), "bad");
+        toast("Review approved", "ok");
+        await loadReviews(); renderReviews();
+      });
+    });
+    $("review-list").querySelectorAll("[data-unapprove]").forEach(function (b) {
+      b.addEventListener("click", async function () {
+        b.disabled = true;
+        var res = await db.from("reviews").update({ approved: false }).eq("id", b.dataset.unapprove);
+        b.disabled = false;
+        if (res.error) return toast(errorText(res.error), "bad");
+        toast("Review hidden", "ok");
+        await loadReviews(); renderReviews();
+      });
+    });
+    $("review-list").querySelectorAll("[data-del-review]").forEach(function (b) {
+      b.addEventListener("click", async function () {
+        if (!confirm("Delete this review permanently?")) return;
+        var res = await db.from("reviews").delete().eq("id", b.dataset.delReview);
+        if (res.error) return toast(errorText(res.error), "bad");
+        toast("Review deleted", "ok");
+        await loadReviews(); renderReviews();
+      });
+    });
+  }
+
+  $("review-filter").addEventListener("change", renderReviews);
+  $("review-refresh").addEventListener("click", async function () { await loadReviews(); renderReviews(); toast("Refreshed", "ok"); });
+
+  /* ---------------- suggestions ---------------- */
+
+  var STATUSES = ["new", "planned", "in_progress", "shipped", "declined"];
+
+  function renderSuggestions() {
+    var filter = $("sug-filter").value;
+    var rows = state.suggestions.filter(function (s) { return filter === "all" || s.status === filter; });
+
+    $("sug-list").innerHTML = rows.length
+      ? '<div class="table-wrap"><table><thead><tr><th>Idea</th><th>Details</th><th>Author</th><th>Status</th><th>Submitted</th><th></th></tr></thead><tbody>' +
+        rows.map(function (s) {
+          var opts = STATUSES.map(function (st) {
+            return '<option value="' + st + '"' + (s.status === st ? " selected" : "") + ">" + st.replace("_", " ") + "</option>";
+          }).join("");
+          return "<tr><td><strong>" + esc(s.title) + "</strong></td><td class=\"msg\">" + esc(s.details || "") + "</td><td class=\"nowrap\">" + esc(s.name) +
+            "</td><td><select data-status=\"" + esc(s.id) + "\" aria-label=\"Status\">" + opts + "</select></td><td class=\"nowrap muted\">" + esc(fmtDate(s.created_at)) +
+            "</td><td class=\"actions\"><button class=\"btn small danger\" data-del-sug=\"" + esc(s.id) + "\">Delete</button></td></tr>";
+        }).join("") + "</tbody></table></div>"
+      : '<div class="empty">Nothing here yet.</div>';
+
+    $("sug-list").querySelectorAll("[data-status]").forEach(function (sel) {
+      sel.addEventListener("change", async function () {
+        var res = await db.from("suggestions").update({ status: sel.value }).eq("id", sel.dataset.status);
+        if (res.error) return toast(errorText(res.error), "bad");
+        toast("Status updated", "ok");
+        await loadSuggestions();
+      });
+    });
+    $("sug-list").querySelectorAll("[data-del-sug]").forEach(function (b) {
+      b.addEventListener("click", async function () {
+        if (!confirm("Delete this suggestion permanently?")) return;
+        var res = await db.from("suggestions").delete().eq("id", b.dataset.delSug);
+        if (res.error) return toast(errorText(res.error), "bad");
+        toast("Suggestion deleted", "ok");
+        await loadSuggestions(); renderSuggestions();
+      });
+    });
+  }
+
+  $("sug-filter").addEventListener("change", renderSuggestions);
+  $("sug-refresh").addEventListener("click", async function () { await loadSuggestions(); renderSuggestions(); toast("Refreshed", "ok"); });
+
+  // deep link: /admin.html#reviews
+  if (location.hash) {
+    var t = location.hash.replace("#", "");
+    if (["overview", "subscribers", "stories", "reviews", "suggestions"].indexOf(t) >= 0) {
+      setTimeout(function () { setTab(t); }, 0);
+    }
+  }
+})();
+</script>
+</body>
 </html>

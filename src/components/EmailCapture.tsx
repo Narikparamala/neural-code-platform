@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, Send, Check, Loader2, AlertCircle, Youtube } from 'lucide-react';
-import { submitToInbox } from '../lib/forms';
+import { subscribeEmail } from '../lib/supabase';
 
 const TELEGRAM_URL = 'https://t.me/cs0telegram';
 
@@ -19,24 +19,15 @@ export default function EmailCapture() {
     }
 
     setStatus('sending');
-    const result = await submitToInbox({
-      _subject: 'CosmicSpirit0 newsletter signup',
-      email: email.trim(),
-      kind: 'newsletter',
-    });
+    const result = await subscribeEmail(email, 'newsletter');
 
-    if (result.success) {
+    if (result.data) {
       setStatus('done');
       setMessage('You are on the list. Watch your inbox for the next lab drop.');
       setEmail('');
-    } else if (/activation/i.test(result.message)) {
-      setStatus('error');
-      setMessage(
-        'One-time setup: check narikparamala@gmail.com and click the "Activate Form" link. After that every signup lands automatically.'
-      );
     } else {
-      setStatus('error');
-      setMessage(result.message);
+      setStatus(result.error === 'Please enter a valid email address.' ? 'invalid' : 'error');
+      setMessage(result.error || 'Could not subscribe right now. Please try again.');
     }
   };
 

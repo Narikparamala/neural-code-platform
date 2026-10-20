@@ -5,7 +5,7 @@ const CONTACT_EMAIL = 'narikparamala@gmail.com';
 
 type LegalDoc = 'privacy' | 'terms' | null;
 
-export default function Footer() {
+export default function Footer({ onNavigate }: { onNavigate?: (lab: string) => void }) {
   const [doc, setDoc] = useState<LegalDoc>(null);
   const year = new Date().getFullYear();
 
@@ -26,8 +26,21 @@ export default function Footer() {
           <div>
             <h2 className="text-sm font-semibold text-gray-200 mb-3">Explore</h2>
             <ul className="space-y-1 text-sm text-gray-400">
-              <li><a className="hover:text-white inline-flex min-h-[32px] items-center" href="#labs">Labs</a></li>
-              <li><a className="hover:text-white inline-flex min-h-[32px] items-center" href="#newsletter-heading">Newsletter</a></li>
+              <li>
+                <button type="button" onClick={() => onNavigate?.('home')} className="hover:text-white inline-flex min-h-[32px] items-center">
+                  Labs
+                </button>
+              </li>
+              <li>
+                <button type="button" onClick={() => onNavigate?.('feedback')} className="hover:text-white inline-flex min-h-[32px] items-center">
+                  Reviews &amp; suggestions
+                </button>
+              </li>
+              <li>
+                <button type="button" onClick={() => onNavigate?.('connect')} className="hover:text-white inline-flex min-h-[32px] items-center">
+                  Community stories
+                </button>
+              </li>
               <li>
                 <a className="hover:text-white inline-flex min-h-[32px] items-center" href="https://paypal.me/ParamalaKiran" target="_blank" rel="noopener noreferrer">
                   Sponsor the project
@@ -114,7 +127,8 @@ export default function Footer() {
               <div className="space-y-3 text-sm text-gray-300">
                 <p>This site has no accounts, no tracking cookies and no advertising.</p>
                 <p>Audio is generated in your browser. Session data stays in your browser and is never uploaded.</p>
-                <p>The newsletter link opens your own email app; nothing is stored on the site.</p>
+                <p>The newsletter stores only the email address you submit, used only to send lab updates. Ask us to delete it any time.</p>
+                <p>Stories, reviews and suggestions you submit are stored in our database. Stories and reviews appear publicly after moderation; suggestions appear on the public idea board.</p>
                 <p>Third-party links (Instagram, Telegram, YouTube, PayPal, Cloudinary) follow their own privacy policies.</p>
                 <p>
                   Questions: <a className="text-purple-300 underline" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>

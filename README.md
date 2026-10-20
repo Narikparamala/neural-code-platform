@@ -15,7 +15,8 @@ No install, no account, no paywall.
 | **Place Lab** | 3D spatial audio using HRTF processing, an interactive brain model and cochlear mapping |
 | **Game Lab** | 60-second attention training — hit the active neural cluster, build a streak, beat your best |
 | **Frequency Lab** | Multi-method entrainment, custom presets, layered background noise, session timer |
-| **Connect** | Instagram, Telegram and YouTube |
+| **Feedback** | Star reviews (moderated) and a public suggestions board |
+| **Connect** | Community stories, Instagram, Telegram and YouTube |
 | **Sponsor** | UPI/PhonePe QR and PayPal |
 
 ## Tech
@@ -24,9 +25,24 @@ No install, no account, no paywall.
 - Tailwind CSS + Framer Motion
 - three.js / @react-three/fiber (Place Lab, lazy-loaded)
 - d3 (oscilloscope)
+- Supabase (Postgres + Row Level Security) for the newsletter, stories, reviews and suggestions
 - Web Audio API — all audio is generated in the browser, nothing is uploaded
 
-## Local development
+## Backend
+
+Supabase project `cosmicspirit0` (`jdwiggwqsyeopcgrovjm`), tables:
+
+| Table | Public can | Admin can |
+|---|---|---|
+| `subscribers` | insert (newsletter) | read / delete / export |
+| `stories` | insert + read `published = true` | publish, unpublish, delete |
+| `reviews` | insert + read `approved = true` | approve, hide, delete |
+| `suggestions` | insert + read all | change status, delete |
+
+Row Level Security allows anonymous inserts only; reads are limited to approved/published rows.
+Admin policies match the owner's email in the JWT, so a normal signup can never read submissions.
+
+Admin console: **/admin.html** (email + password, same as the Supabase Auth user).
 
 ```bash
 npm install

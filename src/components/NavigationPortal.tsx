@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Menu, X, Home, Brain, Users, Zap, Globe, Heart, ExternalLink } from 'lucide-react';
+import { Menu, X, Home, Brain, Users, Zap, Globe, Heart, ExternalLink, MessageSquareHeart } from 'lucide-react';
 
 interface NavigationPortalProps {
   activeLab: string;
@@ -21,6 +21,7 @@ export default function NavigationPortal({
     { id: 'place', name: 'Place Lab', icon: Globe },
     { id: 'population', name: 'Game Lab', icon: Users },
     { id: 'frequency', name: 'Frequency Lab', icon: Zap },
+    { id: 'feedback', name: 'Feedback', icon: MessageSquareHeart },
     { id: 'connect', name: 'Connect', icon: ExternalLink },
     { id: 'sponsor', name: 'Sponsor', icon: Heart },
   ];
@@ -51,7 +52,7 @@ export default function NavigationPortal({
           </motion.div>
 
           {/* Desktop Navigation — only above 1024px so the header never crowds */}
-          <nav className="hidden lg:flex items-center gap-1 xl:gap-2" aria-label="Main navigation">
+          <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1.5" aria-label="Main navigation">
             {labs.map((lab) => {
               const Icon = lab.icon;
               return (
@@ -62,13 +63,13 @@ export default function NavigationPortal({
                   whileTap={{ scale: 0.96 }}
                   onClick={() => onLabSelect(lab.id)}
                   aria-current={activeLab === lab.id ? 'page' : undefined}
-                  className={`flex items-center gap-2 px-3 xl:px-4 min-h-[44px] rounded-lg text-sm xl:text-base whitespace-nowrap transition-all ${
+                  className={`flex items-center gap-1.5 px-2.5 xl:px-3.5 min-h-[44px] rounded-lg text-sm whitespace-nowrap transition-all ${
                     activeLab === lab.id
                       ? 'bg-purple-600 text-white'
                       : 'text-gray-300 hover:text-white hover:bg-gray-700'
                   }`}
                 >
-                  <Icon className="w-4 h-4 flex-shrink-0" />
+                  <Icon className="hidden xl:block w-4 h-4 flex-shrink-0" aria-hidden="true" />
                   <span>{lab.name}</span>
                 </motion.button>
               );
