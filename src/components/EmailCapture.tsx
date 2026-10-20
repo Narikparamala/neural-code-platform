@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Send, Check, Loader2, AlertCircle } from 'lucide-react';
+import { Mail, Send, Check, Loader2, AlertCircle, Youtube } from 'lucide-react';
 import { submitToInbox } from '../lib/forms';
 
 const TELEGRAM_URL = 'https://t.me/cs0telegram';
@@ -128,6 +128,16 @@ export default function EmailCapture() {
         >
           <Send className="w-5 h-5" />
           Join Telegram
+        </a>
+
+        <a
+          href="https://www.youtube.com/@cosmicspirit0?sub_confirmation=1"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center justify-center gap-2 mt-4 ml-0 sm:ml-3 px-6 min-h-[44px] bg-red-600 hover:bg-red-700 rounded-lg font-medium transition-colors"
+        >
+          <Youtube className="w-5 h-5" />
+          Subscribe on YouTube
         </a>
       </div>
     </section>

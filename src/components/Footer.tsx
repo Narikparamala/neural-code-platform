@@ -50,7 +50,7 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <a className="hover:text-white inline-flex items-center gap-2 min-h-[32px]" href="https://www.youtube.com/@cosmicspirit0" target="_blank" rel="noopener noreferrer">
+                <a className="hover:text-white inline-flex items-center gap-2 min-h-[32px]" href="https://www.youtube.com/@cosmicspirit0?sub_confirmation=1" target="_blank" rel="noopener noreferrer">
                   <Youtube className="w-4 h-4" /> YouTube
                 </a>
               </li>
