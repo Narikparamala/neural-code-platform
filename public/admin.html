@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CosmicSpirit0 — Ops Console</title>
+    <meta name="robots" content="noindex" />
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0b0a14;
+        --panel: rgba(23, 20, 38, 0.85);
+        --line: rgba(148, 130, 220, 0.22);
+        --text: #ece9ff;
+        --muted: #a5a0c4;
+        --purple: #a855f7;
+        --green: #34d399;
+        --red: #f87171;
+        --blue: #38bdf8;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(1100px 600px at 85% -10%, rgba(168, 85, 247, 0.28), transparent 60%),
+          radial-gradient(900px 500px at 0% 100%, rgba(56, 189, 248, 0.18), transparent 60%),
+          var(--bg);
+        min-height: 100vh;
+        padding: 28px 18px 60px;
+      }
+      .wrap { max-width: 1080px; margin: 0 auto; }
+      header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+      h1 { font-size: clamp(22px, 4vw, 32px); margin: 0; }
+      h1 span { background: linear-gradient(135deg, #a855f7, #ec4899); -webkit-background-clip: text; background-clip: text; color: transparent; }
+      .sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+      .pill { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--line); background: rgba(168, 85, 247, 0.1); font-size: 12px; }
+      .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+      .dot.ok { background: var(--green); box-shadow: 0 0 10px rgba(52, 211, 153, 0.8); }
+      .dot.bad { background: var(--red); }
+      .grid { display: grid; gap: 16px; }
+      .cols-4 { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+      .cols-2 { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+      .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 18px; backdrop-filter: blur(8px); }
+      .card h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); margin: 0 0 14px; font-weight: 600; }
+      .metric { font-size: 30px; font-weight: 700; line-height: 1.1; }
+      .metric.purple { color: var(--purple); }
+      .metric.blue { color: var(--blue); }
+      .metric.green { color: var(--green); }
+      .metric.small { font-size: 20px; }
+      .label { color: var(--muted); font-size: 13px; margin-top: 6px; }
+      a { color: #c4b5fd; }
+      .links { display: grid; gap: 10px; }
+      .links a {
+        display: flex; align-items: center; justify-content: space-between; gap: 10px;
+        padding: 12px 14px; min-height: 46px; border-radius: 10px;
+        border: 1px solid var(--line); background: rgba(255, 255, 255, 0.02);
+        text-decoration: none; color: var(--text); font-size: 14px;
+      }
+      .links a:hover { border-color: rgba(168, 85, 247, 0.6); background: rgba(168, 85, 247, 0.1); }
+      .links a span { color: var(--muted); font-size: 12px; }
+      input, textarea {
+        width: 100%; padding: 12px 14px; min-height: 46px; border-radius: 10px;
+        border: 1px solid var(--line); background: rgba(10, 8, 20, 0.8); color: var(--text);
+        font: inherit; font-size: 14px;
+      }
+      textarea { min-height: 120px; resize: vertical; }
+      label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 6px; }
+      button {
+        display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        min-height: 46px; padding: 0 20px; border-radius: 10px; border: 0;
+        background: linear-gradient(135deg, #8b5cf6, #d946ef); color: #fff;
+        font-weight: 600; font-size: 14px; cursor: pointer;
+      }
+      button:hover { filter: brightness(1.1); }
+      button.ghost { background: transparent; border: 1px solid var(--line); color: var(--text); }
+      pre {
+        white-space: pre-wrap; word-break: break-word; background: rgba(0, 0, 0, 0.45);
+        border: 1px solid var(--line); border-radius: 10px; padding: 14px; font-size: 12px;
+        color: #d8d4f0; max-height: 260px; overflow: auto;
+      }
+      .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+      .muted { color: var(--muted); font-size: 12px; }
+      .note { border-left: 3px solid var(--purple); padding: 10px 14px; background: rgba(168, 85, 247, 0.08); border-radius: 0 10px 10px 0; font-size: 13px; color: #d6d1ee; }
+      footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: center; }
+      .ok-text { color: var(--green); }
+      .bad-text { color: var(--red); }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div>
+          <h1><span>CosmicSpirit0</span> Ops Console</h1>
+          <div class="sub">Read-only operations view. Publishing happens in GitHub, YouTube Studio and Telegram.</div>
+        </div>
+        <div class="pill"><span class="dot" id="site-dot"></span><span id="site-pill">checking site…</span></div>
+      </header>
+
+      <div class="grid cols-4" style="margin-bottom: 16px">
+        <div class="card">
+          <h2>Live site</h2>
+          <div class="metric small" id="site-status">—</div>
+          <div class="label" id="site-time">—</div>
+        </div>
+        <div class="card">
+          <h2>Stars</h2>
+          <div class="metric purple" id="stars">—</div>
+          <div class="label" id="forks">— forks</div>
+        </div>
+        <div class="card">
+          <h2>Last commit</h2>
+          <div class="metric small" id="commit-date">—</div>
+          <div class="label" id="commit-msg">—</div>
+        </div>
+        <div class="card">
+          <h2>Last deploy</h2>
+          <div class="metric small" id="deploy-status">—</div>
+          <div class="label" id="deploy-time">—</div>
+        </div>
+      </div>
+
+      <div class="grid cols-2">
+        <section class="card">
+          <h2>Operations</h2>
+          <div class="links">
+            <a href="https://github.com/Narikparamala/neural-code-platform" target="_blank" rel="noopener">
+              Source repository <span>GitHub</span>
+            </a>
+            <a href="https://github.com/Narikparamala/neural-code-platform/actions" target="_blank" rel="noopener">
+              Deploy pipeline <span>Actions</span>
+            </a>
+            <a href="https://studio.youtube.com/channel/UCTvSTsv46Sz_jt1sgk0KQLA/videos/upload" target="_blank" rel="noopener">
+              Upload a video <span>YouTube Studio</span>
+            </a>
+            <a href="https://web.telegram.org/a/" target="_blank" rel="noopener">
+              Post an update <span>Telegram Web</span>
+            </a>
+            <a href="https://mail.google.com/mail/u/0/#search/CosmicSpirit0" target="_blank" rel="noopener">
+              Subscribers &amp; stories inbox <span>Gmail</span>
+            </a>
+            <a href="https://narikparamala.github.io/neural-code-platform/" target="_blank" rel="noopener">
+              Open the live platform <span>Public site</span>
+            </a>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Story publisher</h2>
+          <p class="muted" style="margin-top:0">
+            Paste an approved story, copy the generated JSON, and add it to
+            <code>public/stories.json</code> in GitHub. The site publishes it on the next deploy.
+          </p>
+          <label for="story-name">Name shown on the wall</label>
+          <input id="story-name" placeholder="e.g. Aditya" maxlength="60" />
+          <label for="story-text">Story text</label>
+          <textarea id="story-text" placeholder="What changed for you after using a lab?"></textarea>
+          <div class="row" style="margin-top: 12px">
+            <button id="generate">Generate JSON</button>
+            <button class="ghost" id="copy">Copy</button>
+            <a class="muted" href="https://github.com/Narikparamala/neural-code-platform/edit/main/public/stories.json" target="_blank" rel="noopener">
+              Edit stories.json
+            </a>
+          </div>
+          <pre id="story-output" style="margin-top: 14px">The generated entry appears here.</pre>
+        </section>
+      </div>
+
+      <section class="card" style="margin-top: 16px">
+        <h2>How each piece works</h2>
+        <div class="note">
+          <strong>Newsletter &amp; stories</strong> are delivered by FormSubmit to the project inbox — no
+          database, no subscription fee. The first submission triggers a one-time activation email;
+          click it once and every later submission lands automatically.
+        </div>
+        <div class="note" style="margin-top: 10px">
+          <strong>Community accounts</strong> are not enabled yet. Real authentication needs a free
+          Supabase project (or similar); until that exists, the Telegram channel is the community hub
+          and stories are moderated through this console.
+        </div>
+      </section>
+
+      <footer>CosmicSpirit0 Ops Console · public data only · no credentials stored</footer>
+    </div>
+
+    <script>
+      const REPO = 'Narikparamala/neural-code-platform';
+      const SITE = 'https://narikparamala.github.io/neural-code-platform/';
+      const BASE = 'https://narikparamala.github.io/neural-code-platform';
+
+      const $ = (id) => document.getElementById(id);
+      const fmt = (iso) => {
+        if (!iso) return '—';
+        const d = new Date(iso);
+        return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+      };
+
+      async function siteCheck() {
+        const start = performance.now();
+        try {
+          const res = await fetch(SITE + '?t=' + Date.now(), { cache: 'no-store' });
+          const ms = Math.round(performance.now() - start);
+          $('site-dot').className = 'dot ' + (res.ok ? 'ok' : 'bad');
+          $('site-pill').textContent = res.ok ? 'site online' : 'site returning ' + res.status;
+          $('site-status').innerHTML = res.ok
+            ? '<span class="ok-text">Online</span>'
+            : '<span class="bad-text">HTTP ' + res.status + '</span>';
+          $('site-time').textContent = res.ok ? ms + ' ms response' : 'checked ' + fmt(new Date().toISOString());
+        } catch (e) {
+          $('site-dot').className = 'dot bad';
+          $('site-pill').textContent = 'site unreachable';
+          $('site-status').innerHTML = '<span class="bad-text">Unreachable</span>';
+          $('site-time').textContent = 'network error';
+        }
+      }
+
+      async function repoStats() {
+        try {
+          const r = await fetch('https://api.github.com/repos/' + REPO);
+          if (!r.ok) throw new Error('repo ' + r.status);
+          const d = await r.json();
+          $('stars').textContent = d.stargazers_count;
+          $('forks').textContent = d.forks_count + ' forks · ' + d.open_issues_count + ' open issues';
+          $('commit-date').textContent = fmt(d.pushed_at);
+          $('commit-msg').textContent = d.visibility + ' · ' + d.default_branch;
+        } catch (e) {
+          $('stars').textContent = '—';
+          $('forks').textContent = 'GitHub API unavailable';
+        }
+      }
+
+      async function deployStats() {
+        try {
+          const r = await fetch('https://api.github.com/repos/' + REPO + '/actions/runs?per_page=1');
+          if (!r.ok) throw new Error('runs ' + r.status);
+          const d = await r.json();
+          const run = d.workflow_runs && d.workflow_runs[0];
+          if (!run) return;
+          const status = run.status === 'completed' ? run.conclusion : run.status;
+          $('deploy-status').innerHTML = status === 'success'
+            ? '<span class="ok-text">Success</span>'
+            : status === 'in_progress'
+              ? '<span style="color:#38bdf8">Running</span>'
+              : '<span class="bad-text">' + status + '</span>';
+          $('deploy-time').textContent = fmt(run.updated_at) + ' · ' + run.name;
+        } catch (e) {
+          $('deploy-status').textContent = '—';
+          $('deploy-time').textContent = 'Actions API unavailable';
+        }
+      }
+
+      function generate() {
+        const name = ($('story-name').value || 'Anonymous').trim().slice(0, 60);
+        const text = $('story-text').value.trim();
+        if (text.length < 10) {
+          $('story-output').textContent = 'Write at least a sentence first.';
+          return;
+        }
+        const entry = {
+          name: name,
+          text: text,
+          date: new Date().toISOString().slice(0, 10)
+        };
+        $('story-output').textContent = JSON.stringify([entry], null, 2);
+      }
+
+      async function copyOut() {
+        const out = $('story-output').textContent;
+        try {
+          await navigator.clipboard.writeText(out);
+          $('copy').textContent = 'Copied';
+          setTimeout(() => ($('copy').textContent = 'Copy'), 1500);
+        } catch {
+          $('copy').textContent = 'Select & copy manually';
+        }
+      }
+
+      $('generate').addEventListener('click', generate);
+      $('copy').addEventListener('click', copyOut);
+
+      siteCheck();
+      repoStats();
+      deployStats();
+    </script>
+  </body>
+</html>

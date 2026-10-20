@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { ExternalLink, Instagram, MessageCircle, Youtube } from 'lucide-react';
+import StoryWall from './StoryWall';
 
 const ConnectPage: React.FC = () => {
   const socialLinks = [
@@ -31,7 +32,7 @@ const ConnectPage: React.FC = () => {
   ];
 
   return (
-    <div className="max-w-4xl mx-auto p-4 lg:p-6 space-y-8">
+    <div className="max-w-6xl mx-auto p-4 lg:p-6 space-y-8">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -91,19 +92,26 @@ const ConnectPage: React.FC = () => {
         transition={{ duration: 0.5, delay: 0.4 }}
         className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700"
       >
-        <h2 className="text-2xl font-bold mb-6 text-center">Join Our Growing Community</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+        <h2 className="text-2xl font-bold mb-2 text-center">Built to stay free</h2>
+        <p className="text-center text-sm text-gray-400 mb-8">
+          No inflated numbers. These are the real terms of the platform.
+        </p>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 text-center">
           <div>
-            <div className="text-3xl font-bold text-purple-400 mb-2">1000+</div>
-            <div className="text-gray-400">Active Users</div>
+            <div className="text-3xl font-bold text-purple-400 mb-2">4</div>
+            <div className="text-gray-400">Labs live</div>
           </div>
           <div>
-            <div className="text-3xl font-bold text-blue-400 mb-2">50K+</div>
-            <div className="text-gray-400">Sessions Completed</div>
+            <div className="text-3xl font-bold text-blue-400 mb-2">$0</div>
+            <div className="text-gray-400">Forever free</div>
           </div>
           <div>
-            <div className="text-3xl font-bold text-green-400 mb-2">24/7</div>
-            <div className="text-gray-400">Community Support</div>
+            <div className="text-3xl font-bold text-green-400 mb-2">0</div>
+            <div className="text-gray-400">Signups needed</div>
+          </div>
+          <div>
+            <div className="text-3xl font-bold text-cyan-400 mb-2">100%</div>
+            <div className="text-gray-400">Audio generated in-browser</div>
           </div>
         </div>
       </motion.div>
@@ -127,6 +135,8 @@ const ConnectPage: React.FC = () => {
           <span className="px-4 py-2 bg-yellow-600/20 rounded-full text-sm">Advanced Technology</span>
         </div>
       </motion.div>
+
+      <StoryWall />
     </div>
   );
 };

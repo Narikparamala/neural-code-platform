@@ -1,3 +1,24 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5.5rem;
+}
+
+/* Keep anchored sections clear of the fixed header */
+[id] {
+  scroll-margin-top: 5.5rem;
+}
+
+body {
+  text-rendering: optimizeLegibility;
+}
+
+/* Larger, more comfortable canvas on 2xl+ displays */
+@media (min-width: 1600px) {
+  .max-w-7xl {
+    max-width: 88rem;
+  }
+}
