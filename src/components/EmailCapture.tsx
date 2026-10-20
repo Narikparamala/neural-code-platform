@@ -29,6 +29,11 @@ export default function EmailCapture() {
       setStatus('done');
       setMessage('You are on the list. Watch your inbox for the next lab drop.');
       setEmail('');
+    } else if (/activation/i.test(result.message)) {
+      setStatus('error');
+      setMessage(
+        'One-time setup: check narikparamala@gmail.com and click the "Activate Form" link. After that every signup lands automatically.'
+      );
     } else {
       setStatus('error');
       setMessage(result.message);
