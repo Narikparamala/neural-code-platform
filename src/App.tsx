@@ -103,7 +103,7 @@ function App() {
       />
 
       {/* Main Content */}
-      <main className="relative z-10 pt-20 p-4 lg:p-6">
+      <main className="relative z-10 pt-24 px-4 pb-8 lg:px-6 lg:pt-28 lg:pb-10">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeLab}
