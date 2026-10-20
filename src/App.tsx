@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, lazy, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Brain, Waves, Globe, Users, Archive, Settings, Shield, Menu, X, Zap, Heart, ExternalLink } from 'lucide-react';
 import RateLab from './components/RateLab';
-import PlaceLab from './components/PlaceLab';
+const PlaceLab = lazy(() => import('./components/PlaceLab'));
 import PopulationLab from './components/PopulationLab';
 import FrequencyLab from './components/FrequencyLab';
 import NeuralArchive from './components/NeuralArchive';
@@ -10,6 +10,9 @@ import NavigationPortal from './components/NavigationPortal';
 import SafetyDashboard from './components/SafetyDashboard';
 import ConnectPage from './components/ConnectPage';
 import SponsorshipPage from './components/SponsorshipPage';
+import Footer from './components/Footer';
+import EmailCapture from './components/EmailCapture';
+import NotFound from './components/NotFound';
 
 type ActiveLab = 'home' | 'rate' | 'place' | 'population' | 'frequency' | 'connect' | 'sponsor';
 
@@ -19,6 +22,11 @@ function App() {
   const [showSafety, setShowSafety] = useState(false);
   const [sessionData, setSessionData] = useState<any>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const base = import.meta.env.BASE_URL || '/';
+  const rawPath = typeof window !== 'undefined' ? window.location.pathname : '/';
+  const cleanPath = (rawPath.startsWith(base) ? rawPath.slice(base.length) : rawPath.replace(/^\//, '')).replace(/\/+$/, '');
+  const isUnknownPath = cleanPath !== '' && cleanPath !== 'index.html';
 
   useEffect(() => {
     // Initialize audio context on user interaction
@@ -33,7 +41,21 @@ function App() {
     return () => document.removeEventListener('click', initAudioContext);
   }, []);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [activeLab]);
+
   const renderActiveLab = () => {
+    if (isUnknownPath) {
+      return (
+        <NotFound
+          onHome={() => {
+            window.history.replaceState({}, '', base);
+            window.location.reload();
+          }}
+        />
+      );
+    }
     switch (activeLab) {
       case 'rate':
         return <RateLab onSessionUpdate={setSessionData} />;
@@ -91,10 +113,16 @@ function App() {
             transition={{ duration: 0.3 }}
             className="w-full"
           >
-            {renderActiveLab()}
+            <Suspense fallback={<div className="py-24 text-center text-gray-400">Loading lab&hellip;</div>}>
+              {renderActiveLab()}
+            </Suspense>
           </motion.div>
         </AnimatePresence>
       </main>
+
+      {['home', 'connect', 'sponsor'].includes(activeLab) && !isUnknownPath && <EmailCapture />}
+
+      <Footer />
 
       {/* Enhanced Control Buttons - Only show for non-social pages */}
       {!['connect', 'sponsor'].includes(activeLab) && (
@@ -168,7 +196,7 @@ function HomePortal({ onLabSelect }: { onLabSelect: (lab: ActiveLab) => void }) 
         className="text-center mb-8 lg:mb-12"
       >
         <h1 className="text-4xl lg:text-6xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-          CosmicSpirit - Neural Code Platform
+          CosmicSpirit0 &mdash; Neural Code Platform
         </h1>
         <p className="text-lg lg:text-xl text-gray-300 max-w-2xl mx-auto px-4">
           Explore consciousness through advanced audio-visual neural interfaces and brainwave entrainment technology.
@@ -185,7 +213,7 @@ function HomePortal({ onLabSelect }: { onLabSelect: (lab: ActiveLab) => void }) 
         </div>
       </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8 max-w-7xl w-full px-4">
+      <div id="labs" className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8 max-w-7xl w-full px-4">
         {labs.map((lab, index) => (
           <motion.div
             key={lab.id}

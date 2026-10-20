@@ -148,8 +148,11 @@ const SponsorshipPage: React.FC = () => {
             </h3>
             <div className="bg-white p-4 rounded-lg inline-block">
               <img 
-                src="https://res.cloudinary.com/doourcehz/image/upload/v1762696930/IMG_20251109_193025_hprtai.png" 
+                src="https://res.cloudinary.com/doourcehz/image/upload/w_400,h_400,c_fit,f_webp,q_auto/v1762696930/IMG_20251109_193025_hprtai.png" 
                 alt="PhonePe QR Code" 
+                width={192}
+                height={192}
+                loading="lazy"
                 className="w-48 h-48 mx-auto"
               />
             </div>

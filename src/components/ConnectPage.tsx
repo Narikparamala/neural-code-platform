@@ -41,8 +41,10 @@ const ConnectPage: React.FC = () => {
       >
         <div className="flex items-center justify-center gap-3 mb-6">
           <img 
-            src="https://res.cloudinary.com/doourcehz/image/upload/v1762704996/download_1_t0xokx.jpg" 
-            alt="CosmicSpirit Logo" 
+            src="https://res.cloudinary.com/doourcehz/image/upload/w_128,h_128,c_fill,f_webp,q_auto/v1762704996/download_1_t0xokx.jpg" 
+            alt="CosmicSpirit0 logo" 
+            width={64}
+            height={64}
             className="w-16 h-16 rounded-full"
           />
           <h1 className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">

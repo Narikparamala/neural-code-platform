@@ -481,9 +481,9 @@ const PlaceLab: React.FC<PlaceLabProps> = ({ onSessionUpdate }) => {
         className="text-center lg:text-left"
       >
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4">
-          <h2 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent mb-4 lg:mb-0">
+          <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent mb-4 lg:mb-0">
             Place Lab - 3D Spatial Audio Neural Mapping
-          </h2>
+          </h1>
           <div className="flex gap-2 justify-center lg:justify-end">
             <button
               onClick={() => setShowGuide(!showGuide)}

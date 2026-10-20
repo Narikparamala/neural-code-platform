@@ -1,0 +1,5 @@
+﻿User-agent: *
+Allow: /
+
+Sitemap: https://narikparamala.github.io/neural-code-platform/sitemap.xml
+
