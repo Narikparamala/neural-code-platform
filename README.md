@@ -38,25 +38,26 @@ Supabase project `cosmicspirit0` (`jdwiggwqsyeopcgrovjm`), tables:
 | `stories` | insert + read `published = true` | publish, unpublish, delete |
 | `reviews` | insert + read `approved = true` | approve, hide, delete |
 | `suggestions` | insert + read all | change status, delete |
+| `site_settings` | read the single row | update logo + social links |
 
 Row Level Security allows anonymous inserts only; reads are limited to approved/published rows.
 Admin policies match the owner's email in the JWT, so a normal signup can never read submissions.
+`site_stats()` is a read-only SQL function used by the Transparency page to publish real counts.
 
-Admin console: **/admin.html** (email + password, same as the Supabase Auth user).
-
-```bash
-npm install
-npm run dev      # http://localhost:5173/neural-code-platform/
-npm run build    # production build in dist/
-```
-
-The production base path is `/neural-code-platform/` (GitHub Pages). Set `GITHUB_PAGES=false`
-to build for a root-domain host.
+Admin console: **/admin.html** (email + password, same as the Supabase Auth user). The
+**Site settings** tab edits the logo and the Instagram, Telegram, YouTube, TikTok and support URLs
+without touching code.
 
 ## Deploy
 
-Every push to `main` triggers `.github/workflows/deploy.yml`, which builds and publishes to
-GitHub Pages.
+- **Primary:** https://neural-code-platform.vercel.app/ — every push to `main` runs
+  `.github/workflows/vercel.yml` (prebuilt Vercel deploy).
+- **Mirror:** https://narikparamala.github.io/neural-code-platform/ — `.github/workflows/deploy.yml`
+  publishes the same build to GitHub Pages.
+
+Vercel builds from the repository root, so the base path is `/`; GitHub Pages uses
+`/neural-code-platform/`. `vite.config.ts` detects `VERCEL` automatically. Set `GITHUB_PAGES=false`
+to force a root-domain build locally.
 
 ## Safety
 
