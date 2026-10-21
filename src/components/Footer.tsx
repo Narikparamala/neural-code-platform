@@ -49,7 +49,7 @@ export default function Footer({ onNavigate }: { onNavigate?: (lab: string) => v
                 </button>
               </li>
               <li>
-                <a className="hover:text-white inline-flex min-h-[32px] items-center" href="https://paypal.me/ParamalaKiran" target="_blank" rel="noopener noreferrer">
+                <a className="hover:text-white inline-flex min-h-[32px] items-center" href={settings.support_url} target="_blank" rel="noopener noreferrer">
                   Sponsor the project
                 </a>
               </li>

@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Heart, Brain, Zap, Users, Target, ExternalLink, Copy, Check } from 'lucide-react';
+import { useSiteSettings } from '../lib/siteSettings';
 
 const SponsorshipPage: React.FC = () => {
+  const settings = useSiteSettings();
+  const supportLabel = settings.support_url.replace(/^https?:\/\//, '').replace(/\/$/, '');
   const [copiedPayPal, setCopiedPayPal] = useState(false);
 
   const projectFeatures = [
@@ -80,7 +83,7 @@ const SponsorshipPage: React.FC = () => {
   ];
 
   const copyPayPalLink = () => {
-    navigator.clipboard.writeText('paypal.me/ParamalaKiran');
+    navigator.clipboard.writeText(settings.support_url);
     setCopiedPayPal(true);
     setTimeout(() => setCopiedPayPal(false), 2000);
   };
@@ -241,16 +244,16 @@ const SponsorshipPage: React.FC = () => {
             <h3 className="text-xl font-semibold mb-4">PayPal</h3>
             <div className="space-y-4">
               <a
-                href="https://paypal.me/ParamalaKiran"
+                href={settings.support_url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
               >
                 <ExternalLink className="w-5 h-5" />
-                paypal.me/ParamalaKiran
+                {supportLabel}
               </a>
               <div className="flex items-center justify-center gap-2">
-                <code className="px-3 py-2 bg-gray-700 rounded text-sm">paypal.me/ParamalaKiran</code>
+                <code className="px-3 py-2 bg-gray-700 rounded text-sm">{supportLabel}</code>
                 <button
                   onClick={copyPayPalLink}
                   className="p-2 bg-gray-600 hover:bg-gray-500 rounded transition-colors"
