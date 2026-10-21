@@ -1,7 +1,7 @@
 import { config as emailConfig, emailConfigured, layout, providerName, sendEmail, textToHtml } from '../lib/email.js';
 import { getUserFromToken, isAdmin, readBody, rest, sendJson } from '../lib/supabaseAdmin.js';
 
-const CONCURRENCY = 5;
+const CONCURRENCY = 6;
 
 function capFor(provider) {
   const override = Number(process.env.MAX_EMAILS_PER_SEND || 0);
