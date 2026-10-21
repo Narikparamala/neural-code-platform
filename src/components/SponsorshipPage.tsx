@@ -25,7 +25,7 @@ const SponsorshipPage: React.FC<{ onNavigate?: (lab: string) => void }> = ({ onN
     {
       icon: Zap,
       title: 'Honest labelling',
-      description: 'Every lab states what the signal is and what the evidence does and does not show. No “unlock your brain” claims.'
+      description: 'Plain-language research notes explain what each signal is and what the evidence does and does not show. No “unlock your brain” claims.'
     },
     {
       icon: Target,
@@ -257,7 +257,7 @@ const SponsorshipPage: React.FC<{ onNavigate?: (lab: string) => void }> = ({ onN
         transition={{ duration: 0.5, delay: 0.6 }}
         className="bg-gradient-to-r from-purple-900/20 to-blue-900/20 rounded-xl p-8 border border-purple-500/30"
       >
-        <h2 className="text-2xl font-bold mb-6 text-center">Support Us Today</h2>
+        <h2 className="text-2xl font-bold mb-6 text-center">Ways to give</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* PhonePe QR Code */}
@@ -307,8 +307,8 @@ const SponsorshipPage: React.FC<{ onNavigate?: (lab: string) => void }> = ({ onN
 
         <div className="mt-8 text-center">
           <p className="text-gray-300 mb-4">
-            Every contribution, no matter the size, helps us continue developing this free platform 
-            for consciousness exploration and neural research.
+            Every contribution, no matter the size, keeps hosting and maintenance paid and the site
+            free for everyone.
           </p>
           <div className="flex flex-wrap justify-center gap-4 text-sm">
             <span className="px-3 py-1 bg-green-600/20 rounded-full">100% Open Source</span>
@@ -326,10 +326,10 @@ const SponsorshipPage: React.FC<{ onNavigate?: (lab: string) => void }> = ({ onN
         transition={{ duration: 0.5, delay: 0.8 }}
         className="text-center bg-gray-800/30 rounded-xl p-6"
       >
-        <h2 className="text-xl font-bold mb-3">Thank You for Your Support! 🙏</h2>
+        <h2 className="text-xl font-bold mb-3">Thank you for supporting the project</h2>
         <p className="text-gray-300">
-          Your contribution directly supports the development of advanced consciousness exploration tools 
-          and helps keep this platform free for everyone interested in neural research and personal development.
+          Your contribution goes toward hosting, audio assets, accessibility fixes and the time it
+          takes to keep the research notes accurate. It never buys influence over findings.
         </p>
       </motion.div>
     </div>

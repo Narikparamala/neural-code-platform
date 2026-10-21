@@ -52,10 +52,10 @@ export default class ErrorBoundary extends React.Component<Props, State> {
     return (
       <div className="max-w-2xl mx-auto my-10 rounded-2xl border border-amber-500/40 bg-amber-950/30 p-6 text-center">
         <AlertTriangle className="w-8 h-8 text-amber-400 mx-auto mb-3" aria-hidden="true" />
-        <h2 className="text-xl font-bold mb-2">This lab hit an error</h2>
+        <h2 className="text-xl font-bold mb-2">This page hit an error</h2>
         <p className="text-sm text-gray-300 mb-4">
-          The rest of the site is fine. This usually happens after an update, or when 3D graphics are
-          unavailable on this device.
+          Reloading usually fixes it — most often this happens right after an update, or when 3D
+          graphics are unavailable on this device.
         </p>
         <div className="flex flex-wrap justify-center gap-3">
           <button
