@@ -17,6 +17,8 @@ import {
   BookOpen,
   FileText,
   LogIn,
+  Archive,
+  Shield,
 } from 'lucide-react';
 import { useSiteSettings } from '../lib/siteSettings';
 import { useAuth, initials } from '../lib/auth';
@@ -26,6 +28,8 @@ interface NavigationPortalProps {
   onLabSelect: (lab: any) => void;
   isMobileMenuOpen: boolean;
   setIsMobileMenuOpen: (open: boolean) => void;
+  onOpenArchive?: () => void;
+  onOpenSafety?: () => void;
 }
 
 export default function NavigationPortal({
@@ -33,6 +37,8 @@ export default function NavigationPortal({
   onLabSelect,
   isMobileMenuOpen,
   setIsMobileMenuOpen,
+  onOpenArchive,
+  onOpenSafety,
 }: NavigationPortalProps) {
   const settings = useSiteSettings();
   const { user, profile, openAuth } = useAuth();
@@ -283,6 +289,29 @@ export default function NavigationPortal({
                   </>
                 )}
               </button>
+
+              <div className="grid grid-cols-2 gap-2 border-t border-gray-800 mt-1 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onOpenArchive?.();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="flex items-center justify-center gap-2 min-h-[44px] rounded-lg bg-gray-800 text-sm text-gray-300 hover:text-white"
+                >
+                  <Archive className="w-4 h-4" /> Archive
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onOpenSafety?.();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="flex items-center justify-center gap-2 min-h-[44px] rounded-lg bg-gray-800 text-sm text-gray-300 hover:text-white"
+                >
+                  <Shield className="w-4 h-4" /> Safety
+                </button>
+              </div>
             </nav>
           </motion.div>
         )}

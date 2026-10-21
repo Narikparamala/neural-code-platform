@@ -140,6 +140,8 @@ function App() {
         onLabSelect={setActiveLab}
         isMobileMenuOpen={isMobileMenuOpen}
         setIsMobileMenuOpen={setIsMobileMenuOpen}
+        onOpenArchive={() => setShowArchive(true)}
+        onOpenSafety={() => setShowSafety(true)}
       />
 
       {/* Neural Archive Panel */}
@@ -183,7 +185,7 @@ function App() {
 
       {/* Enhanced Control Buttons - Only show for non-social pages */}
       {!['connect', 'sponsor'].includes(activeLab) && (
-        <div className="no-print fixed bottom-4 right-4 flex flex-col gap-2 z-40">
+        <div className="no-print fixed bottom-4 right-4 hidden sm:flex flex-col gap-2 z-40">
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
