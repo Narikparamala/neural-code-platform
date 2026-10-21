@@ -30,8 +30,13 @@ export default function CommunityPage({ onUsePreset }: { onUsePreset: (preset: P
     return () => window.removeEventListener('cs0:community-tab', onTab);
   }, []);
 
-  const tabs: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-    { id: 'presets', label: 'Shared presets', icon: Headphones },
+  const tabs: {
+    id: Tab;
+    label: string;
+    mobileLabel?: string;
+    icon: React.ComponentType<{ className?: string }>;
+  }[] = [
+    { id: 'presets', label: 'Shared presets', mobileLabel: 'Presets', icon: Headphones },
     { id: 'circles', label: 'Circles', icon: Users },
     { id: 'profile', label: 'Profile', icon: UserRound },
   ];
@@ -76,21 +81,23 @@ export default function CommunityPage({ onUsePreset }: { onUsePreset: (preset: P
           )}
         </div>
 
-        <div className="mt-6 flex gap-1 border-b border-gray-800 overflow-x-auto" role="tablist" aria-label="Community sections">
-          {tabs.map(({ id, label, icon: Icon }) => (
+        <div className="mt-6 flex gap-0.5 sm:gap-1 border-b border-gray-800 overflow-x-auto" role="tablist" aria-label="Community sections">
+          {tabs.map(({ id, label, mobileLabel, icon: Icon }) => (
             <button
               key={id}
               type="button"
               role="tab"
               aria-selected={tab === id}
               onClick={() => setTab(id)}
-              className={`inline-flex items-center gap-2 px-4 min-h-[46px] text-sm font-semibold whitespace-nowrap border-b-2 -mb-px ${
+              className={`inline-flex flex-1 sm:flex-none items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 min-h-[46px] text-[13px] sm:text-sm font-semibold whitespace-nowrap border-b-2 -mb-px ${
                 tab === id
                   ? 'border-purple-500 text-white'
                   : 'border-transparent text-gray-400 hover:text-gray-200'
               }`}
             >
-              <Icon className="w-4 h-4" /> {label}
+              <Icon className="w-4 h-4 flex-shrink-0" />
+              <span className="sm:hidden">{mobileLabel ?? label}</span>
+              <span className="hidden sm:inline">{label}</span>
             </button>
           ))}
         </div>

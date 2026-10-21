@@ -364,6 +364,11 @@ class AdvancedAudioEngine {
     if (this.audioContext && this.audioContext.state !== 'closed') {
       this.audioContext.close();
     }
+    this.audioContext = null;
+    this.masterGain = null;
+    this.analyser = null;
+    this.noiseBuffers.clear();
+    this.isInitialized = false;
   }
 }
 
@@ -415,7 +420,7 @@ const FrequencyLab: React.FC<FrequencyLabProps> = ({ onSessionUpdate }) => {
     endFreq: 40
   });
 
-  const audioEngineRef = useRef<AdvancedAudioEngine>(new AdvancedAudioEngine());
+  const [audioEngine] = useState(() => new AdvancedAudioEngine());
   const sessionTimerRef = useRef<NodeJS.Timeout | null>(null);
   const rampingTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [frequencyData, setFrequencyData] = useState<Uint8Array | null>(null);
@@ -465,14 +470,14 @@ const FrequencyLab: React.FC<FrequencyLabProps> = ({ onSessionUpdate }) => {
 
   useEffect(() => {
     const initAudio = async () => {
-      await audioEngineRef.current.initialize();
+      await audioEngine.initialize();
     };
     initAudio();
 
     return () => {
-      audioEngineRef.current.destroy();
+      audioEngine.destroy();
     };
-  }, []);
+  }, [audioEngine]);
 
   useEffect(() => {
     if (isPlaying) {
@@ -487,7 +492,7 @@ const FrequencyLab: React.FC<FrequencyLabProps> = ({ onSessionUpdate }) => {
 
       // Start frequency monitoring
       const monitorFrequency = () => {
-        const data = audioEngineRef.current.getFrequencyData();
+        const data = audioEngine.getFrequencyData();
         setFrequencyData(data);
         if (isPlaying) {
           requestAnimationFrame(monitorFrequency);
@@ -519,7 +524,7 @@ const FrequencyLab: React.FC<FrequencyLabProps> = ({ onSessionUpdate }) => {
   useEffect(() => {
     if (!isPlaying || !currentConfig.duration) return;
     if (sessionTime >= currentConfig.duration) {
-      audioEngineRef.current.stopAll();
+      audioEngine.stopAll();
       setIsPlaying(false);
     }
   }, [sessionTime, isPlaying, currentConfig.duration]);
@@ -567,22 +572,22 @@ const FrequencyLab: React.FC<FrequencyLabProps> = ({ onSessionUpdate }) => {
 
   const handlePlay = async () => {
     if (isPlaying) {
-      audioEngineRef.current.stopAll();
+      audioEngine.stopAll();
       setIsPlaying(false);
     } else {
-      await audioEngineRef.current.initialize();
+      await audioEngine.initialize();
       
       // Start enabled audio configs
       currentConfig.audioConfigs.forEach(config => {
         if (config.enabled) {
-          audioEngineRef.current.startAudioConfig(config);
+          audioEngine.startAudioConfig(config);
         }
       });
 
       // Start enabled background sounds
       currentConfig.backgroundSounds.forEach(sound => {
         if (sound.enabled) {
-          audioEngineRef.current.startBackgroundSound(sound);
+          audioEngine.startBackgroundSound(sound);
         }
       });
 
@@ -591,7 +596,7 @@ const FrequencyLab: React.FC<FrequencyLabProps> = ({ onSessionUpdate }) => {
   };
 
   const handleReset = () => {
-    audioEngineRef.current.stopAll();
+    audioEngine.stopAll();
     setIsPlaying(false);
     setSessionTime(0);
     if (sessionTimerRef.current) clearInterval(sessionTimerRef.current);
@@ -629,16 +634,16 @@ const FrequencyLab: React.FC<FrequencyLabProps> = ({ onSessionUpdate }) => {
       if (config) {
         if (updates.enabled !== undefined) {
           if (updates.enabled) {
-            audioEngineRef.current.startAudioConfig({ ...config, ...updates });
+            audioEngine.startAudioConfig({ ...config, ...updates });
           } else {
-            audioEngineRef.current.stopAudioConfig(id);
+            audioEngine.stopAudioConfig(id);
           }
         } else {
           if (updates.volume !== undefined) {
-            audioEngineRef.current.updateVolume(id, updates.volume);
+            audioEngine.updateVolume(id, updates.volume);
           }
           if (updates.frequency !== undefined || updates.carrierFreq !== undefined) {
-            audioEngineRef.current.updateFrequency(
+            audioEngine.updateFrequency(
               id, 
               updates.frequency ?? config.frequency,
               updates.carrierFreq ?? config.carrierFreq
@@ -663,19 +668,19 @@ const FrequencyLab: React.FC<FrequencyLabProps> = ({ onSessionUpdate }) => {
       if (sound) {
         if (updates.enabled !== undefined) {
           if (updates.enabled) {
-            audioEngineRef.current.startBackgroundSound({ ...sound, ...updates });
+            audioEngine.startBackgroundSound({ ...sound, ...updates });
           } else {
-            audioEngineRef.current.stopBackgroundSound(id);
+            audioEngine.stopBackgroundSound(id);
           }
         } else if (updates.volume !== undefined) {
-          audioEngineRef.current.updateVolume(id, updates.volume, true);
+          audioEngine.updateVolume(id, updates.volume, true);
         }
       }
     }
   };
 
   const removeAudioConfig = (id: string) => {
-    audioEngineRef.current.stopAudioConfig(id);
+    audioEngine.stopAudioConfig(id);
     setCurrentConfig(prev => ({
       ...prev,
       audioConfigs: prev.audioConfigs.filter(config => config.id !== id)
