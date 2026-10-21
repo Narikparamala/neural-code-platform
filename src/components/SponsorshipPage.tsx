@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Heart, Brain, Zap, Users, Target, ExternalLink, Copy, Check } from 'lucide-react';
 import { useSiteSettings } from '../lib/siteSettings';
+import SponsorLeadForm from './SponsorLeadForm';
 
-const SponsorshipPage: React.FC = () => {
+const SponsorshipPage: React.FC<{ onNavigate?: (lab: string) => void }> = ({ onNavigate }) => {
   const settings = useSiteSettings();
   const supportLabel = settings.support_url.replace(/^https?:\/\//, '').replace(/\/$/, '');
   const [copiedPayPal, setCopiedPayPal] = useState(false);
@@ -35,16 +36,19 @@ const SponsorshipPage: React.FC = () => {
     {
       name: 'Listener',
       amount: '$3 / month',
+      usd: 3,
       benefits: ['Keeps hosting and maintenance running', 'Supporter wall (only with permission)', 'Cancel any time']
     },
     {
       name: 'Explorer',
       amount: '$10 / month',
+      usd: 10,
       benefits: ['All Listener benefits', 'Early preset packs', 'Monthly research notes with sources']
     },
     {
       name: 'Patron',
       amount: '$25 / month',
+      usd: 25,
       benefits: ['All Explorer benefits', 'Behind-the-scenes build log', 'Quarterly community listening session']
     }
   ];
@@ -163,6 +167,14 @@ const SponsorshipPage: React.FC = () => {
                   </li>
                 ))}
               </ul>
+              <a
+                href={settings.support_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-5 inline-flex items-center justify-center gap-2 w-full min-h-[44px] rounded-lg bg-purple-600 hover:bg-purple-700 font-semibold text-sm"
+              >
+                <Heart className="w-4 h-4" aria-hidden="true" /> Support ${tier.usd}
+              </a>
             </motion.div>
           ))}
         </div>
@@ -200,15 +212,31 @@ const SponsorshipPage: React.FC = () => {
             </div>
           ))}
         </div>
-        <div className="text-center mt-6">
-          <a
-            href="mailto:narikparamala@gmail.com?subject=CosmicSpirit0%20sponsorship"
+        <div className="text-center mt-6 flex flex-wrap justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => onNavigate?.('deck')}
             className="inline-flex items-center gap-2 px-5 min-h-[44px] rounded-lg bg-purple-600 hover:bg-purple-700 font-semibold text-sm"
           >
-            Request the one-page sponsor deck
+            Open the one-page sponsor deck
             <ExternalLink className="w-4 h-4" aria-hidden="true" />
+          </button>
+          <a
+            href="mailto:narikparamala@gmail.com?subject=CosmicSpirit0%20sponsorship"
+            className="inline-flex items-center gap-2 px-5 min-h-[44px] rounded-lg border border-gray-600 hover:border-gray-500 font-semibold text-sm"
+          >
+            Email instead
           </a>
         </div>
+      </motion.div>
+
+      {/* Lead form */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.55 }}
+      >
+        <SponsorLeadForm />
       </motion.div>
 
       {/* Payment Methods */}

@@ -13,7 +13,7 @@ export default function Footer({ onNavigate }: { onNavigate?: (lab: string) => v
 
   return (
     <>
-      <footer className="relative z-10 border-t border-gray-800 bg-gray-950/80 mt-12">
+      <footer className="no-print relative z-10 border-t border-gray-800 bg-gray-950/80 mt-12">
         <div className="max-w-7xl mx-auto px-4 py-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <p className="text-lg font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
@@ -21,7 +21,8 @@ export default function Footer({ onNavigate }: { onNavigate?: (lab: string) => v
             </p>
             <p className="text-xs text-gray-400 mt-1">Neural Code Platform</p>
             <p className="text-sm text-gray-400 mt-3 max-w-xs">
-              Free browser-based tools for brainwave entrainment, spatial audio and attention training.
+              Free browser-based experiments with sound, attention and spatial audio. Not medical
+              treatment.
             </p>
           </div>
 
@@ -41,6 +42,16 @@ export default function Footer({ onNavigate }: { onNavigate?: (lab: string) => v
               <li>
                 <button type="button" onClick={() => onNavigate?.('transparency')} className="hover:text-white inline-flex min-h-[32px] items-center">
                   Transparency
+                </button>
+              </li>
+              <li>
+                <button type="button" onClick={() => onNavigate?.('about')} className="hover:text-white inline-flex min-h-[32px] items-center">
+                  About &amp; vision
+                </button>
+              </li>
+              <li>
+                <button type="button" onClick={() => onNavigate?.('research')} className="hover:text-white inline-flex min-h-[32px] items-center">
+                  Research &amp; evidence
                 </button>
               </li>
               <li>
@@ -141,6 +152,7 @@ export default function Footer({ onNavigate }: { onNavigate?: (lab: string) => v
                 <p>Audio is generated in your browser. Session data stays in your browser and is never uploaded.</p>
                 <p>The newsletter stores only the email address you submit, used only to send lab updates. Ask us to delete it any time.</p>
                 <p>Stories, reviews and suggestions you submit are stored in our database. Stories and reviews appear publicly after moderation; suggestions appear on the public idea board.</p>
+                <p>Sponsor enquiries sent through the sponsor form are stored privately for the maintainer. They are never published or added to the newsletter.</p>
                 <p>Third-party links (Instagram, Telegram, YouTube, PayPal, Cloudinary) follow their own privacy policies.</p>
                 <p>
                   Questions: <a className="text-purple-300 underline" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>

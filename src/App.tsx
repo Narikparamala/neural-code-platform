@@ -13,11 +13,27 @@ import SponsorshipPage from './components/SponsorshipPage';
 import FeedbackPage from './components/FeedbackPage';
 import TransparencyPage from './components/TransparencyPage';
 import DailySignal from './components/DailySignal';
+import AboutPage from './components/AboutPage';
+import ResearchPage from './components/ResearchPage';
+import SponsorDeck from './components/SponsorDeck';
+import ErrorBoundary from './components/ErrorBoundary';
 import Footer from './components/Footer';
 import EmailCapture from './components/EmailCapture';
 import NotFound from './components/NotFound';
 
-type ActiveLab = 'home' | 'rate' | 'place' | 'population' | 'frequency' | 'feedback' | 'transparency' | 'connect' | 'sponsor';
+type ActiveLab =
+  | 'home'
+  | 'rate'
+  | 'place'
+  | 'population'
+  | 'frequency'
+  | 'feedback'
+  | 'transparency'
+  | 'about'
+  | 'research'
+  | 'deck'
+  | 'connect'
+  | 'sponsor';
 
 function App() {
   const [activeLab, setActiveLab] = useState<ActiveLab>('home');
@@ -72,10 +88,16 @@ function App() {
         return <FeedbackPage />;
       case 'transparency':
         return <TransparencyPage onNavigate={(lab) => setActiveLab(lab as ActiveLab)} />;
+      case 'about':
+        return <AboutPage onNavigate={(lab) => setActiveLab(lab as ActiveLab)} />;
+      case 'research':
+        return <ResearchPage onNavigate={(lab) => setActiveLab(lab as ActiveLab)} />;
+      case 'deck':
+        return <SponsorDeck onBack={() => setActiveLab('sponsor')} />;
       case 'connect':
         return <ConnectPage />;
       case 'sponsor':
-        return <SponsorshipPage />;
+        return <SponsorshipPage onNavigate={(lab) => setActiveLab(lab as ActiveLab)} />;
       default:
         return <HomePortal onLabSelect={setActiveLab} onNavigate={setActiveLab} />;
     }
@@ -121,7 +143,9 @@ function App() {
             className="w-full"
           >
             <Suspense fallback={<div className="py-24 text-center text-gray-400">Loading lab&hellip;</div>}>
-              {renderActiveLab()}
+              <ErrorBoundary key={activeLab} onHome={() => setActiveLab('home')}>
+                {renderActiveLab()}
+              </ErrorBoundary>
             </Suspense>
           </motion.div>
         </AnimatePresence>
@@ -230,10 +254,17 @@ function HomePortal({
           </a>
           <button
             type="button"
-            onClick={() => onNavigate('transparency')}
+            onClick={() => onNavigate('research')}
             className="inline-flex items-center gap-2 px-6 min-h-[48px] rounded-lg border border-gray-600 hover:border-gray-500 font-semibold"
           >
             Read the evidence
+          </button>
+          <button
+            type="button"
+            onClick={() => onNavigate('about')}
+            className="inline-flex items-center gap-2 px-4 min-h-[48px] text-sm text-gray-300 hover:text-white font-semibold"
+          >
+            About the project
           </button>
         </div>
 

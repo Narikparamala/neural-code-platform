@@ -167,6 +167,7 @@
       <button class="tab" role="tab" data-tab="stories" aria-selected="false">Stories <span class="pill" id="pill-stories">0</span></button>
       <button class="tab" role="tab" data-tab="reviews" aria-selected="false">Reviews <span class="pill" id="pill-reviews">0</span></button>
       <button class="tab" role="tab" data-tab="suggestions" aria-selected="false">Suggestions <span class="pill" id="pill-suggestions">0</span></button>
+      <button class="tab" role="tab" data-tab="leads" aria-selected="false">Sponsor leads <span class="pill" id="pill-leads">0</span></button>
       <button class="tab" role="tab" data-tab="settings" aria-selected="false">Site settings</button>
     </nav>
 
@@ -234,6 +235,16 @@
       <div id="sug-list"></div>
     </section>
 
+    <section class="panel" id="tab-leads" hidden>
+      <h2 class="sec" style="margin-top:0">Sponsor leads</h2>
+      <p class="hint">Private enquiries from the sponsor page. Nothing here is public.</p>
+      <div class="toolbar">
+        <input id="lead-search" type="search" placeholder="Search name, email, brand…" aria-label="Search leads" />
+        <button class="btn" type="button" id="lead-export">Export CSV</button>
+      </div>
+      <div id="lead-list"></div>
+    </section>
+
     <section class="panel" id="tab-settings" hidden>
       <h2 class="sec" style="margin-top:0">Branding &amp; links</h2>
       <p class="hint">These values are read by the public site on every page load. Leave a field empty to fall back to the built-in default.</p>
@@ -290,6 +301,7 @@
     stories: [],
     reviews: [],
     suggestions: [],
+    leads: [],
     settings: null,
     tab: "overview"
   };
@@ -324,6 +336,21 @@
     if (!error) return "Unknown error";
     if (String(error.message || "").indexOf("Failed to fetch") >= 0) return "Network error — check your connection.";
     return error.message || String(error);
+  }
+
+  function csvCell(v) {
+    return '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
+  }
+
+  function download(name, text) {
+    var blob = new Blob([text], { type: "text/csv;charset=utf-8" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
   }
 
   /* ---------------- auth ---------------- */
@@ -391,7 +418,7 @@
     Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (btn) {
       btn.setAttribute("aria-selected", btn.dataset.tab === name ? "true" : "false");
     });
-    ["overview", "subscribers", "stories", "reviews", "suggestions", "settings"].forEach(function (t) {
+    ["overview", "subscribers", "stories", "reviews", "suggestions", "leads", "settings"].forEach(function (t) {
       $("tab-" + t).hidden = t !== name;
     });
     if (name === "overview") renderOverview();
@@ -399,6 +426,7 @@
     if (name === "stories") renderStories();
     if (name === "reviews") renderReviews();
     if (name === "suggestions") renderSuggestions();
+    if (name === "leads") renderLeads();
     if (name === "settings") renderSettings();
   }
 
@@ -409,7 +437,7 @@
   /* ---------------- data ---------------- */
 
   async function loadAll() {
-    await Promise.all([loadSubscribers(), loadStories(), loadReviews(), loadSuggestions(), loadSettings()]);
+    await Promise.all([loadSubscribers(), loadStories(), loadReviews(), loadSuggestions(), loadLeads(), loadSettings()]);
     renderOverview();
     if (state.tab !== "overview") setTab(state.tab);
   }
@@ -780,10 +808,74 @@
   $("sug-filter").addEventListener("change", renderSuggestions);
   $("sug-refresh").addEventListener("click", async function () { await loadSuggestions(); renderSuggestions(); toast("Refreshed", "ok"); });
 
+  /* ---------------- sponsor leads ---------------- */
+
+  var LEAD_STATUSES = ["new", "contacted", "won", "closed"];
+
+  async function loadLeads() {
+    var res = await db.from("sponsor_leads").select("*").order("created_at", { ascending: false });
+    if (!res.error) state.leads = res.data || [];
+    var fresh = state.leads.filter(function (l) { return l.status === "new"; }).length;
+    $("pill-leads").textContent = String(fresh);
+  }
+
+  function renderLeads() {
+    var q = ($("lead-search").value || "").toLowerCase().trim();
+    var rows = state.leads.filter(function (l) {
+      if (!q) return true;
+      return [l.name, l.email, l.organisation, l.message, l.package].join(" ").toLowerCase().indexOf(q) >= 0;
+    });
+
+    $("lead-list").innerHTML = rows.length
+      ? '<div class="table-wrap"><table><thead><tr><th>Contact</th><th>Package</th><th>Message</th><th>Status</th><th>Received</th><th></th></tr></thead><tbody>' +
+        rows.map(function (l) {
+          var opts = LEAD_STATUSES.map(function (st) {
+            return '<option value="' + st + '"' + (l.status === st ? " selected" : "") + ">" + st + "</option>";
+          }).join("");
+          return "<tr><td><strong>" + esc(l.name) + "</strong><div class=\"muted\"><a href=\"mailto:" + esc(l.email) + "\">" + esc(l.email) + "</a></div>" +
+            (l.organisation ? "<div class=\"muted\">" + esc(l.organisation) + "</div>" : "") + "</td>" +
+            "<td class=\"nowrap\">" + esc(l.package) + (l.budget ? "<div class=\"muted\">" + esc(l.budget) + "</div>" : "") + "</td>" +
+            "<td class=\"msg\">" + esc(l.message) + "</td>" +
+            "<td><select data-lead-status=\"" + esc(l.id) + "\" aria-label=\"Lead status\">" + opts + "</select></td>" +
+            "<td class=\"nowrap muted\">" + esc(fmtDate(l.created_at)) + "</td>" +
+            "<td class=\"actions\"><button class=\"btn small danger\" data-del-lead=\"" + esc(l.id) + "\">Delete</button></td></tr>";
+        }).join("") + "</tbody></table></div>"
+      : '<div class="empty">' + (q ? "No lead matches that search." : "No sponsor enquiries yet.") + "</div>";
+
+    $("lead-list").querySelectorAll("[data-lead-status]").forEach(function (sel) {
+      sel.addEventListener("change", async function () {
+        var res = await db.from("sponsor_leads").update({ status: sel.value }).eq("id", sel.dataset.leadStatus);
+        if (res.error) return toast(errorText(res.error), "bad");
+        toast("Lead status updated", "ok");
+        await loadLeads();
+      });
+    });
+    $("lead-list").querySelectorAll("[data-del-lead]").forEach(function (b) {
+      b.addEventListener("click", async function () {
+        if (!confirm("Delete this lead permanently?")) return;
+        var res = await db.from("sponsor_leads").delete().eq("id", b.dataset.delLead);
+        if (res.error) return toast(errorText(res.error), "bad");
+        toast("Lead deleted", "ok");
+        await loadLeads(); renderLeads();
+      });
+    });
+  }
+
+  $("lead-search").addEventListener("input", renderLeads);
+  $("lead-export").addEventListener("click", function () {
+    if (!state.leads.length) return toast("Nothing to export yet", "bad");
+    var head = ["name", "email", "organisation", "package", "budget", "status", "message", "created_at"];
+    var lines = [head.join(",")].concat(state.leads.map(function (l) {
+      return head.map(function (k) { return csvCell(l[k]); }).join(",");
+    }));
+    download("sponsor-leads.csv", lines.join("\r\n"));
+    toast("CSV exported", "ok");
+  });
+
   // deep link: /admin.html#reviews
   if (location.hash) {
     var t = location.hash.replace("#", "");
-    if (["overview", "subscribers", "stories", "reviews", "suggestions"].indexOf(t) >= 0) {
+    if (["overview", "subscribers", "stories", "reviews", "suggestions", "leads", "settings"].indexOf(t) >= 0) {
       setTimeout(function () { setTab(t); }, 0);
     }
   }

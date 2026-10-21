@@ -599,7 +599,19 @@ const PlaceLab: React.FC<PlaceLabProps> = ({ onSessionUpdate }) => {
         >
           <h3 className="text-2xl font-bold mb-6">3D Brain Model & Spatial Audio</h3>
           <div className="h-96 bg-gray-900/50 rounded-lg">
-            <Canvas camera={{ position: [5, 5, 5], fov: 60 }}>
+            <Canvas
+              camera={{ position: [5, 5, 5], fov: 60 }}
+              dpr={[1, 1.5]}
+              fallback={
+                <div className="h-full flex flex-col items-center justify-center p-6 text-center">
+                  <Brain className="w-10 h-10 text-purple-400 mb-3" aria-hidden="true" />
+                  <p className="font-semibold mb-1">3D view is unavailable on this device</p>
+                  <p className="text-sm text-gray-400">
+                    The spatial audio controls and presets below still work.
+                  </p>
+                </div>
+              }
+            >
               <BrainModel 
                 sources={soundSources} 
                 onSourceMove={(id, position) => {

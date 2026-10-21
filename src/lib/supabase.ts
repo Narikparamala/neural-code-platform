@@ -165,3 +165,35 @@ export async function submitSuggestion(
   if (error) return { data: null, error: friendly(error) };
   return { data: true, error: null };
 }
+
+export type SponsorLead = {
+  name: string;
+  email: string;
+  organisation?: string;
+  package: string;
+  budget?: string;
+  message: string;
+};
+
+export async function submitSponsorLead(lead: SponsorLead): Promise<Result<true>> {
+  const name = lead.name.trim();
+  const email = lead.email.trim().toLowerCase();
+  const message = lead.message.trim();
+
+  if (name.length < 2) return { data: null, error: 'Add your name.' };
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return { data: null, error: 'Add a valid email address.' };
+  if (message.length < 10) return { data: null, error: 'Tell us a little about what you have in mind.' };
+
+  const { error } = await supabase.from('sponsor_leads').insert({
+    name: name.slice(0, 80),
+    email: email.slice(0, 160),
+    organisation: (lead.organisation || '').trim().slice(0, 120) || null,
+    package: lead.package || 'community',
+    budget: (lead.budget || '').trim().slice(0, 60) || null,
+    message: message.slice(0, 2000),
+    status: 'new',
+  });
+
+  if (error) return { data: null, error: friendly(error) };
+  return { data: true, error: null };
+}
