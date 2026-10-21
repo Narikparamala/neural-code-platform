@@ -1,9 +1,9 @@
-# CosmicSpirit0 — Neural Code Platform
+﻿# CosmicSpirit0 — Neural Code Platform
 
 Free, browser-based tools for brainwave entrainment, 3D spatial audio and attention training.
 No install, no account, no paywall.
 
-**Live:** https://narikparamala.github.io/neural-code-platform/
+**Live:** https://neural-code-platform.vercel.app/
 
 ![Game Lab](docs/screenshot-game-lab.png)
 

@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { Instagram, Send, Youtube, Mail, X } from 'lucide-react';
+import { Instagram, Send, Youtube, Mail, X, Music2 } from 'lucide-react';
+import { useSiteSettings } from '../lib/siteSettings';
 
 const CONTACT_EMAIL = 'narikparamala@gmail.com';
 
 type LegalDoc = 'privacy' | 'terms' | null;
 
 export default function Footer({ onNavigate }: { onNavigate?: (lab: string) => void }) {
+  const settings = useSiteSettings();
   const [doc, setDoc] = useState<LegalDoc>(null);
   const year = new Date().getFullYear();
 
@@ -37,6 +39,11 @@ export default function Footer({ onNavigate }: { onNavigate?: (lab: string) => v
                 </button>
               </li>
               <li>
+                <button type="button" onClick={() => onNavigate?.('transparency')} className="hover:text-white inline-flex min-h-[32px] items-center">
+                  Transparency
+                </button>
+              </li>
+              <li>
                 <button type="button" onClick={() => onNavigate?.('connect')} className="hover:text-white inline-flex min-h-[32px] items-center">
                   Community stories
                 </button>
@@ -53,18 +60,23 @@ export default function Footer({ onNavigate }: { onNavigate?: (lab: string) => v
             <h2 className="text-sm font-semibold text-gray-200 mb-3">Connect</h2>
             <ul className="space-y-1 text-sm text-gray-400">
               <li>
-                <a className="hover:text-white inline-flex items-center gap-2 min-h-[32px]" href="https://instagram.com/cosmicspirit0official" target="_blank" rel="noopener noreferrer">
+                <a className="hover:text-white inline-flex items-center gap-2 min-h-[32px]" href={settings.instagram_url} target="_blank" rel="noopener noreferrer">
                   <Instagram className="w-4 h-4" /> Instagram
                 </a>
               </li>
               <li>
-                <a className="hover:text-white inline-flex items-center gap-2 min-h-[32px]" href="https://t.me/cs0telegram" target="_blank" rel="noopener noreferrer">
+                <a className="hover:text-white inline-flex items-center gap-2 min-h-[32px]" href={settings.telegram_url} target="_blank" rel="noopener noreferrer">
                   <Send className="w-4 h-4" /> Telegram
                 </a>
               </li>
               <li>
-                <a className="hover:text-white inline-flex items-center gap-2 min-h-[32px]" href="https://www.youtube.com/@cosmicspirit0?sub_confirmation=1" target="_blank" rel="noopener noreferrer">
+                <a className="hover:text-white inline-flex items-center gap-2 min-h-[32px]" href={settings.youtube_url} target="_blank" rel="noopener noreferrer">
                   <Youtube className="w-4 h-4" /> YouTube
+                </a>
+              </li>
+              <li>
+                <a className="hover:text-white inline-flex items-center gap-2 min-h-[32px]" href={settings.tiktok_url} target="_blank" rel="noopener noreferrer">
+                  <Music2 className="w-4 h-4" /> TikTok
                 </a>
               </li>
             </ul>

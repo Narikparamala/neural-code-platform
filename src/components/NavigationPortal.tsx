@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Menu, X, Home, Brain, Users, Zap, Globe, Heart, ExternalLink, MessageSquareHeart } from 'lucide-react';
+import { useSiteSettings } from '../lib/siteSettings';
 
 interface NavigationPortalProps {
   activeLab: string;
@@ -15,6 +16,7 @@ export default function NavigationPortal({
   isMobileMenuOpen,
   setIsMobileMenuOpen,
 }: NavigationPortalProps) {
+  const settings = useSiteSettings();
   const labs = [
     { id: 'home', name: 'Home', icon: Home },
     { id: 'rate', name: 'Rate Lab', icon: Brain },
@@ -37,7 +39,7 @@ export default function NavigationPortal({
             className="flex items-center gap-2 sm:gap-3 min-w-0 flex-shrink-0"
           >
             <img
-              src="https://res.cloudinary.com/doourcehz/image/upload/w_128,h_128,c_fill,f_webp,q_auto/v1762704996/download_1_t0xokx.jpg"
+              src={settings.logo_url}
               alt="CosmicSpirit0 logo"
               width={40}
               height={40}

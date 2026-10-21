@@ -167,6 +167,7 @@
       <button class="tab" role="tab" data-tab="stories" aria-selected="false">Stories <span class="pill" id="pill-stories">0</span></button>
       <button class="tab" role="tab" data-tab="reviews" aria-selected="false">Reviews <span class="pill" id="pill-reviews">0</span></button>
       <button class="tab" role="tab" data-tab="suggestions" aria-selected="false">Suggestions <span class="pill" id="pill-suggestions">0</span></button>
+      <button class="tab" role="tab" data-tab="settings" aria-selected="false">Site settings</button>
     </nav>
 
     <section class="panel" id="tab-overview">
@@ -232,6 +233,40 @@
       </div>
       <div id="sug-list"></div>
     </section>
+
+    <section class="panel" id="tab-settings" hidden>
+      <h2 class="sec" style="margin-top:0">Branding &amp; links</h2>
+      <p class="hint">These values are read by the public site on every page load. Leave a field empty to fall back to the built-in default.</p>
+      <form id="settings-form" class="card" style="margin-top:14px;max-width:720px">
+        <label for="s-logo">Logo image URL</label>
+        <input id="s-logo" type="text" placeholder="https://…/logo.webp" />
+        <div style="display:flex;align-items:center;gap:12px;margin-top:10px">
+          <img id="s-logo-preview" alt="Logo preview" width="48" height="48" style="width:48px;height:48px;border-radius:999px;background:#0b1220;object-fit:cover" />
+          <span class="hint">Preview</span>
+        </div>
+
+        <label for="s-instagram">Instagram URL</label>
+        <input id="s-instagram" type="text" placeholder="https://www.instagram.com/…" />
+
+        <label for="s-telegram">Telegram URL</label>
+        <input id="s-telegram" type="text" placeholder="https://t.me/…" />
+
+        <label for="s-youtube">YouTube URL</label>
+        <input id="s-youtube" type="text" placeholder="https://www.youtube.com/@…" />
+
+        <label for="s-tiktok">TikTok URL</label>
+        <input id="s-tiktok" type="text" placeholder="https://www.tiktok.com/@…" />
+
+        <label for="s-support">Support / donation URL</label>
+        <input id="s-support" type="text" placeholder="https://paypal.me/…" />
+
+        <div class="toolbar" style="margin-bottom:0">
+          <button class="btn primary" type="submit" id="settings-save">Save settings</button>
+          <button class="btn" type="button" id="settings-reload">Reload</button>
+          <span class="hint" id="settings-note"></span>
+        </div>
+      </form>
+    </section>
   </div>
 </main>
 
@@ -255,6 +290,7 @@
     stories: [],
     reviews: [],
     suggestions: [],
+    settings: null,
     tab: "overview"
   };
 
@@ -355,7 +391,7 @@
     Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (btn) {
       btn.setAttribute("aria-selected", btn.dataset.tab === name ? "true" : "false");
     });
-    ["overview", "subscribers", "stories", "reviews", "suggestions"].forEach(function (t) {
+    ["overview", "subscribers", "stories", "reviews", "suggestions", "settings"].forEach(function (t) {
       $("tab-" + t).hidden = t !== name;
     });
     if (name === "overview") renderOverview();
@@ -363,6 +399,7 @@
     if (name === "stories") renderStories();
     if (name === "reviews") renderReviews();
     if (name === "suggestions") renderSuggestions();
+    if (name === "settings") renderSettings();
   }
 
   Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (btn) {
@@ -372,9 +409,102 @@
   /* ---------------- data ---------------- */
 
   async function loadAll() {
-    await Promise.all([loadSubscribers(), loadStories(), loadReviews(), loadSuggestions()]);
+    await Promise.all([loadSubscribers(), loadStories(), loadReviews(), loadSuggestions(), loadSettings()]);
     renderOverview();
     if (state.tab !== "overview") setTab(state.tab);
+  }
+
+  /* ---------------- site settings ---------------- */
+
+  var SETTING_DEFAULTS = {
+    logo_url: "https://res.cloudinary.com/doourcehz/image/upload/w_128,h_128,c_fill,f_webp,q_auto/v1762704996/download_1_t0xokx.jpg",
+    instagram_url: "https://www.instagram.com/cosmicspirit0official/",
+    telegram_url: "https://t.me/cs0telegram",
+    youtube_url: "https://www.youtube.com/@cosmicspirit0",
+    tiktok_url: "https://www.tiktok.com/@cosmicspirit0",
+    support_url: "https://paypal.me/ParamalaKiran"
+  };
+
+  async function loadSettings() {
+    var res = await db.from("site_settings").select("*").eq("id", 1).maybeSingle();
+    if (!res.error && res.data) state.settings = res.data;
+    renderSettings();
+  }
+
+  function renderSettings() {
+    var s = state.settings || SETTING_DEFAULTS;
+    var map = {
+      "s-logo": "logo_url",
+      "s-instagram": "instagram_url",
+      "s-telegram": "telegram_url",
+      "s-youtube": "youtube_url",
+      "s-tiktok": "tiktok_url",
+      "s-support": "support_url"
+    };
+    Object.keys(map).forEach(function (id) {
+      var el = $(id);
+      if (el) el.value = s[map[id]] || "";
+    });
+    var img = $("s-logo-preview");
+    if (img) img.src = s.logo_url || SETTING_DEFAULTS.logo_url;
+  }
+
+  var logoInput = $("s-logo");
+  if (logoInput) {
+    logoInput.addEventListener("input", function () {
+      $("s-logo-preview").src = logoInput.value.trim() || SETTING_DEFAULTS.logo_url;
+    });
+  }
+
+  var settingsForm = $("settings-form");
+  if (settingsForm) {
+    settingsForm.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      var note = $("settings-note");
+      var payload = {
+        logo_url: $("s-logo").value.trim(),
+        instagram_url: $("s-instagram").value.trim(),
+        telegram_url: $("s-telegram").value.trim(),
+        youtube_url: $("s-youtube").value.trim(),
+        tiktok_url: $("s-tiktok").value.trim(),
+        support_url: $("s-support").value.trim()
+      };
+
+      var bad = Object.keys(payload).filter(function (k) {
+        return payload[k] && !/^https?:\/\//i.test(payload[k]);
+      });
+      if (bad.length) {
+        note.textContent = "URLs must start with http:// or https://";
+        toast("Check the highlighted links", "bad");
+        return;
+      }
+      Object.keys(payload).forEach(function (k) {
+        if (!payload[k]) payload[k] = SETTING_DEFAULTS[k];
+      });
+      payload.updated_at = new Date().toISOString();
+
+      var btn = $("settings-save");
+      btn.disabled = true;
+      note.textContent = "Saving…";
+      var res = await db.from("site_settings").update(payload).eq("id", 1).select();
+      btn.disabled = false;
+
+      if (res.error) {
+        note.textContent = "Save failed: " + errorText(res.error);
+        toast("Could not save settings", "bad");
+        return;
+      }
+      state.settings = res.data && res.data[0] ? res.data[0] : payload;
+      renderSettings();
+      note.textContent = "Saved. The public site picks this up on the next page load.";
+      toast("Settings saved", "ok");
+    });
+
+    $("settings-reload").addEventListener("click", async function () {
+      $("settings-note").textContent = "Reloading…";
+      await loadSettings();
+      $("settings-note").textContent = "Reloaded from the database.";
+    });
   }
 
   async function loadSubscribers() {

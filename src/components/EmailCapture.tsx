@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Mail, Send, Check, Loader2, AlertCircle, Youtube } from 'lucide-react';
+import { Mail, Send, Check, Loader2, AlertCircle, Youtube, Music2 } from 'lucide-react';
 import { subscribeEmail } from '../lib/supabase';
-
-const TELEGRAM_URL = 'https://t.me/cs0telegram';
+import { useSiteSettings } from '../lib/siteSettings';
 
 export default function EmailCapture() {
+  const settings = useSiteSettings();
+  const TELEGRAM_URL = settings.telegram_url;
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'invalid' | 'sending' | 'done' | 'error'>('idle');
   const [message, setMessage] = useState('');
@@ -122,13 +123,23 @@ export default function EmailCapture() {
         </a>
 
         <a
-          href="https://www.youtube.com/@cosmicspirit0?sub_confirmation=1"
+          href={settings.youtube_url + '?sub_confirmation=1'}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center justify-center gap-2 mt-4 ml-0 sm:ml-3 px-6 min-h-[44px] bg-red-600 hover:bg-red-700 rounded-lg font-medium transition-colors"
         >
           <Youtube className="w-5 h-5" />
           Subscribe on YouTube
+        </a>
+
+        <a
+          href={settings.tiktok_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center justify-center gap-2 mt-4 ml-0 sm:ml-3 px-6 min-h-[44px] bg-gray-900 border border-gray-700 hover:border-gray-500 rounded-lg font-medium transition-colors"
+        >
+          <Music2 className="w-5 h-5" />
+          Follow on TikTok
         </a>
       </div>
     </section>

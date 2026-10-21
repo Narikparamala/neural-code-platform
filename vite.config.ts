@@ -1,9 +1,11 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// GitHub Pages serves project sites from /<repo>/ — keep the base in sync.
+// GitHub Pages serves project sites from /<repo>/; Vercel (and local) serve from /.
+const isStaticHost = process.env.GITHUB_PAGES !== 'false' && !process.env.VERCEL;
+
 export default defineConfig({
-  base: process.env.GITHUB_PAGES === 'false' ? '/' : '/neural-code-platform/',
+  base: isStaticHost ? '/neural-code-platform/' : '/',
   plugins: [react()],
   optimizeDeps: {
     exclude: ['lucide-react'],

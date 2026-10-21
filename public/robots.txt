@@ -2,4 +2,4 @@
 Allow: /
 Disallow: /admin.html
 
-Sitemap: https://narikparamala.github.io/neural-code-platform/sitemap.xml
+Sitemap: https://neural-code-platform.vercel.app/sitemap.xml

@@ -1,33 +1,44 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ExternalLink, Instagram, MessageCircle, Youtube } from 'lucide-react';
+import { ExternalLink, Instagram, MessageCircle, Youtube, Music2 } from 'lucide-react';
 import StoryWall from './StoryWall';
+import { useSiteSettings } from '../lib/siteSettings';
 
 const ConnectPage: React.FC = () => {
+  const settings = useSiteSettings();
+
   const socialLinks = [
     {
       name: 'Instagram',
       handle: '@cosmicspirit0official',
-      url: 'https://instagram.com/cosmicspirit0official',
+      url: settings.instagram_url,
       icon: Instagram,
       color: 'from-pink-500 to-purple-600',
-      description: 'Follow us for daily consciousness insights and neural training tips'
+      description: 'Short visual notes, session clips and behind-the-scenes updates'
     },
     {
       name: 'Telegram',
       handle: '@cs0telegram',
-      url: 'https://t.me/cs0telegram',
+      url: settings.telegram_url,
       icon: MessageCircle,
       color: 'from-blue-500 to-cyan-600',
-      description: 'Join our community for real-time discussions and support'
+      description: 'Chat with other listeners and get new-lab announcements'
     },
     {
       name: 'YouTube',
       handle: '@cosmicspirit0',
-      url: 'https://www.youtube.com/@cosmicspirit0',
+      url: settings.youtube_url,
       icon: Youtube,
       color: 'from-red-500 to-pink-600',
-      description: 'Watch tutorials, research updates, and consciousness exploration guides'
+      description: 'Walkthroughs, build logs and short explainers on sound and attention'
+    },
+    {
+      name: 'TikTok',
+      handle: '@cosmicspirit0',
+      url: settings.tiktok_url,
+      icon: Music2,
+      color: 'from-slate-700 to-slate-900',
+      description: '60-second experiments and quick explanations'
     }
   ];
 
@@ -42,7 +53,7 @@ const ConnectPage: React.FC = () => {
       >
         <div className="flex items-center justify-center gap-3 mb-6">
           <img 
-            src="https://res.cloudinary.com/doourcehz/image/upload/w_128,h_128,c_fill,f_webp,q_auto/v1762704996/download_1_t0xokx.jpg" 
+            src={settings.logo_url} 
             alt="CosmicSpirit0 logo" 
             width={64}
             height={64}
@@ -53,13 +64,13 @@ const ConnectPage: React.FC = () => {
           </h1>
         </div>
         <p className="text-lg text-gray-300 max-w-2xl mx-auto">
-          Join our growing community of consciousness explorers and neural researchers. 
-          Stay updated with the latest developments in brainwave entrainment technology.
+          Follow updates, share what you notice, and read what other listeners experienced.
+          No account needed.
         </p>
       </motion.div>
 
       {/* Social Links */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {socialLinks.map((link, index) => (
           <motion.a
             key={link.name}
@@ -123,16 +134,16 @@ const ConnectPage: React.FC = () => {
         transition={{ duration: 0.5, delay: 0.6 }}
         className="bg-gradient-to-r from-purple-900/20 to-blue-900/20 rounded-xl p-8 border border-purple-500/30 text-center"
       >
-        <h2 className="text-2xl font-bold mb-4">Ready to Explore Consciousness?</h2>
+        <h2 className="text-2xl font-bold mb-4">Explore with us</h2>
         <p className="text-gray-300 mb-6 max-w-2xl mx-auto">
-          Connect with us on your preferred platform and become part of a community dedicated to 
-          advancing human consciousness through cutting-edge neural technology.
+          Pick a platform below. Session audio never leaves your browser and stories are published
+          only after review.
         </p>
         <div className="flex flex-wrap justify-center gap-4">
-          <span className="px-4 py-2 bg-purple-600/20 rounded-full text-sm">Neural Research</span>
-          <span className="px-4 py-2 bg-blue-600/20 rounded-full text-sm">Consciousness Exploration</span>
-          <span className="px-4 py-2 bg-green-600/20 rounded-full text-sm">Community Support</span>
-          <span className="px-4 py-2 bg-yellow-600/20 rounded-full text-sm">Advanced Technology</span>
+          <span className="px-4 py-2 bg-purple-600/20 rounded-full text-sm">Open source</span>
+          <span className="px-4 py-2 bg-blue-600/20 rounded-full text-sm">No account needed</span>
+          <span className="px-4 py-2 bg-green-600/20 rounded-full text-sm">Moderated stories</span>
+          <span className="px-4 py-2 bg-yellow-600/20 rounded-full text-sm">Free to use</span>
         </div>
       </motion.div>
 

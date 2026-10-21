@@ -8,41 +8,74 @@ const SponsorshipPage: React.FC = () => {
   const projectFeatures = [
     {
       icon: Brain,
-      title: 'Advanced Neural Technology',
-      description: 'Cutting-edge brainwave entrainment using binaural beats, isochronic tones, and spatial audio'
+      title: 'Open audio experiments',
+      description: 'Binaural beats, isochronic tones and spatial audio, generated live in the browser with no account and no upload.'
     },
     {
       icon: Zap,
-      title: 'Real-time Monitoring',
-      description: 'Live frequency analysis and session tracking with AI-powered insights'
+      title: 'Honest labelling',
+      description: 'Every lab states what the signal is and what the evidence does and does not show. No “unlock your brain” claims.'
     },
     {
       icon: Target,
-      title: 'Personalized Training',
-      description: 'Customizable frequency protocols tailored to individual consciousness exploration goals'
+      title: 'A real practice loop',
+      description: 'Guided sessions, attention games, self-ratings and a public idea board that shapes what gets built next.'
     },
     {
       icon: Users,
-      title: 'Open Source & Free',
-      description: 'Completely free platform dedicated to advancing human consciousness research'
+      title: 'Free and open source',
+      description: 'The code and the running costs are public. Community submissions are moderated by a named maintainer.'
     }
   ];
 
   const sponsorshipTiers = [
     {
-      name: 'Consciousness Explorer',
-      amount: '$5-25',
-      benefits: ['Support development', 'Early access to features', 'Community recognition']
+      name: 'Listener',
+      amount: '$3 / month',
+      benefits: ['Keeps hosting and maintenance running', 'Supporter wall (only with permission)', 'Cancel any time']
     },
     {
-      name: 'Neural Researcher',
-      amount: '$25-100',
-      benefits: ['All Explorer benefits', 'Priority support', 'Feature requests', 'Beta testing access']
+      name: 'Explorer',
+      amount: '$10 / month',
+      benefits: ['All Listener benefits', 'Early preset packs', 'Monthly research notes with sources']
     },
     {
-      name: 'Cosmic Patron',
-      amount: '$100+',
-      benefits: ['All Researcher benefits', 'Direct developer contact', 'Custom feature development', 'Project roadmap input']
+      name: 'Patron',
+      amount: '$25 / month',
+      benefits: ['All Explorer benefits', 'Behind-the-scenes build log', 'Quarterly community listening session']
+    }
+  ];
+
+  const sponsorPackages = [
+    {
+      name: 'Community Sponsor',
+      price: 'From $100 / month',
+      points: [
+        'Logo on the sponsor page',
+        'One mention in the newsletter',
+        'Support for one monthly community experiment',
+        'Monthly performance report with real numbers'
+      ]
+    },
+    {
+      name: 'Lab Sponsor',
+      price: 'From $250 / month',
+      points: [
+        '“Supported by” attribution inside one lab',
+        'Co-created preset collection, clearly labelled',
+        'Branded educational content, separated from findings',
+        'Launch announcement and analytics report'
+      ]
+    },
+    {
+      name: 'Research / Education Partner',
+      price: 'Project based',
+      points: [
+        'Support for evidence summaries or open datasets',
+        'No control over results or conclusions',
+        'Public methodology and limitations',
+        'Sponsor kept separate from scientific claims'
+      ]
     }
   ];
 
@@ -64,12 +97,13 @@ const SponsorshipPage: React.FC = () => {
         <div className="flex items-center justify-center gap-3 mb-6">
           <Heart className="w-12 h-12 text-red-400" />
           <h1 className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-red-400 to-pink-400 bg-clip-text text-transparent">
-            Support Our Mission
+            Support open sound exploration
           </h1>
         </div>
         <p className="text-lg text-gray-300 max-w-3xl mx-auto">
-          Help us advance consciousness research and neural technology. Your support enables us to keep this 
-          platform free and continuously improve the tools for exploring human potential.
+          CosmicSpirit0 is free and stays free. Contributions pay for hosting, accessibility work,
+          audio assets and the time it takes to keep the evidence honest. No locked safety information,
+          no artificial urgency.
         </p>
       </motion.div>
 
@@ -106,7 +140,7 @@ const SponsorshipPage: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.4 }}
       >
-        <h2 className="text-2xl font-bold mb-6 text-center">Sponsorship Tiers</h2>
+        <h2 className="text-2xl font-bold mb-6 text-center">Support tiers</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {sponsorshipTiers.map((tier, index) => (
             <motion.div
@@ -128,6 +162,49 @@ const SponsorshipPage: React.FC = () => {
               </ul>
             </motion.div>
           ))}
+        </div>
+      </motion.div>
+
+      {/* Sponsor packages */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.5 }}
+        className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-8 border border-gray-700"
+        id="sponsor-packages"
+      >
+        <h2 className="text-2xl font-bold mb-2 text-center">Sponsor packages</h2>
+        <p className="text-center text-sm text-gray-400 mb-6 max-w-2xl mx-auto">
+          For brands and creators. Every package is clearly labelled, measured with real numbers, and
+          never placed inside an active listening session.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {sponsorPackages.map((pkg) => (
+            <div
+              key={pkg.name}
+              className="p-6 rounded-xl border border-purple-500/30 bg-purple-900/10"
+            >
+              <h3 className="text-lg font-bold text-purple-300">{pkg.name}</h3>
+              <div className="text-sm text-gray-400 mb-3">{pkg.price}</div>
+              <ul className="space-y-2">
+                {pkg.points.map((point, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-gray-300">
+                    <Check className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                    {point}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+        <div className="text-center mt-6">
+          <a
+            href="mailto:narikparamala@gmail.com?subject=CosmicSpirit0%20sponsorship"
+            className="inline-flex items-center gap-2 px-5 min-h-[44px] rounded-lg bg-purple-600 hover:bg-purple-700 font-semibold text-sm"
+          >
+            Request the one-page sponsor deck
+            <ExternalLink className="w-4 h-4" aria-hidden="true" />
+          </a>
         </div>
       </motion.div>
 

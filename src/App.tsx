@@ -11,11 +11,13 @@ import SafetyDashboard from './components/SafetyDashboard';
 import ConnectPage from './components/ConnectPage';
 import SponsorshipPage from './components/SponsorshipPage';
 import FeedbackPage from './components/FeedbackPage';
+import TransparencyPage from './components/TransparencyPage';
+import DailySignal from './components/DailySignal';
 import Footer from './components/Footer';
 import EmailCapture from './components/EmailCapture';
 import NotFound from './components/NotFound';
 
-type ActiveLab = 'home' | 'rate' | 'place' | 'population' | 'frequency' | 'feedback' | 'connect' | 'sponsor';
+type ActiveLab = 'home' | 'rate' | 'place' | 'population' | 'frequency' | 'feedback' | 'transparency' | 'connect' | 'sponsor';
 
 function App() {
   const [activeLab, setActiveLab] = useState<ActiveLab>('home');
@@ -68,12 +70,14 @@ function App() {
         return <FrequencyLab onSessionUpdate={setSessionData} />;
       case 'feedback':
         return <FeedbackPage />;
+      case 'transparency':
+        return <TransparencyPage onNavigate={(lab) => setActiveLab(lab as ActiveLab)} />;
       case 'connect':
         return <ConnectPage />;
       case 'sponsor':
         return <SponsorshipPage />;
       default:
-        return <HomePortal onLabSelect={setActiveLab} />;
+        return <HomePortal onLabSelect={setActiveLab} onNavigate={setActiveLab} />;
     }
   };
 
@@ -154,7 +158,13 @@ function App() {
   );
 }
 
-function HomePortal({ onLabSelect }: { onLabSelect: (lab: ActiveLab) => void }) {
+function HomePortal({
+  onLabSelect,
+  onNavigate,
+}: {
+  onLabSelect: (lab: ActiveLab) => void;
+  onNavigate: (lab: ActiveLab) => void;
+}) {
   const labs = [
     {
       id: 'rate' as ActiveLab,
@@ -202,16 +212,43 @@ function HomePortal({ onLabSelect }: { onLabSelect: (lab: ActiveLab) => void }) 
           CosmicSpirit0 &mdash; Neural Code Platform
         </h1>
         <p className="text-lg lg:text-xl text-gray-300 max-w-2xl mx-auto px-4">
-          Explore consciousness through advanced audio-visual neural interfaces and brainwave entrainment technology.
+          Explore sound, attention and consciousness in your browser. Guided audio experiments,
+          reaction-time games, and plain-language explanations of the ideas behind binaural beats and
+          Hemi-Sync. Free, open, and not medical treatment.
         </p>
-        <div className="mt-6 flex items-center justify-center gap-4 text-sm text-gray-400">
+
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          <a
+            href="#daily-signal"
+            onClick={(e) => {
+              e.preventDefault();
+              document.getElementById('daily-signal')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }}
+            className="inline-flex items-center gap-2 px-6 min-h-[48px] rounded-lg bg-purple-600 hover:bg-purple-700 font-semibold"
+          >
+            Start a 3-minute experiment
+          </a>
+          <button
+            type="button"
+            onClick={() => onNavigate('transparency')}
+            className="inline-flex items-center gap-2 px-6 min-h-[48px] rounded-lg border border-gray-600 hover:border-gray-500 font-semibold"
+          >
+            Read the evidence
+          </button>
+        </div>
+
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-sm text-gray-400">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-            <span>Production Ready</span>
+            <div className="w-2 h-2 bg-green-400 rounded-full" aria-hidden="true"></div>
+            <span>Free &amp; no account</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
-            <span>AI-Powered Analytics</span>
+            <div className="w-2 h-2 bg-purple-400 rounded-full" aria-hidden="true"></div>
+            <span>Audio generated in your browser</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-blue-400 rounded-full" aria-hidden="true"></div>
+            <span>Moderated community</span>
           </div>
         </div>
       </motion.div>
@@ -243,6 +280,8 @@ function HomePortal({ onLabSelect }: { onLabSelect: (lab: ActiveLab) => void }) 
         ))}
       </div>
 
+      <DailySignal />
+
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -250,13 +289,14 @@ function HomePortal({ onLabSelect }: { onLabSelect: (lab: ActiveLab) => void }) 
         className="mt-8 lg:mt-12 text-center px-4"
       >
         <p className="text-gray-400 text-sm lg:text-base mb-4">
-          "Advanced neural entrainment technology for consciousness exploration and cognitive enhancement."
+          "Personal exploration, honestly labelled: what each signal is, what the evidence does and
+          does not show, and how it felt to you."
         </p>
         <div className="flex flex-wrap justify-center gap-4 text-xs text-gray-500">
-          <span>• Real-time Brainwave Entrainment</span>
-          <span>• 3D Spatial Audio Processing</span>
-          <span>• AI-Powered Session Analysis</span>
-          <span>• Advanced Safety Protocols</span>
+          <span>• Real-time audio synthesis</span>
+          <span>• 3D spatial audio processing</span>
+          <span>• Evidence labels on every lab</span>
+          <span>• Safety notes on every session</span>
         </div>
       </motion.div>
     </div>
