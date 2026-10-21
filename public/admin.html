@@ -722,6 +722,8 @@
 
   function providerLabel() {
     if (!state.newsletter.configured) return "Not connected";
+    if (state.newsletter.providerLabel) return state.newsletter.providerLabel;
+    if (state.newsletter.provider === "brevo+apps-script") return "Brevo + Gmail fallback";
     if (state.newsletter.provider === "brevo") return "Brevo API";
     if (state.newsletter.provider === "apps-script") return "Google Apps Script (Gmail)";
     return state.newsletter.provider || "Connected";

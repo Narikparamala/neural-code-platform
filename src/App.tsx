@@ -16,11 +16,14 @@ import DailySignal from './components/DailySignal';
 import AboutPage from './components/AboutPage';
 import ResearchPage from './components/ResearchPage';
 import SponsorDeck from './components/SponsorDeck';
+import CommunityPage from './components/CommunityPage';
+import AuthModal from './components/AuthModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import Footer from './components/Footer';
 import EmailCapture from './components/EmailCapture';
 import NewsletterNotice from './components/NewsletterNotice';
 import NotFound from './components/NotFound';
+import { stashPresetForLab, type Preset } from './lib/social';
 
 type ActiveLab =
   | 'home'
@@ -28,6 +31,7 @@ type ActiveLab =
   | 'place'
   | 'population'
   | 'frequency'
+  | 'community'
   | 'feedback'
   | 'transparency'
   | 'about'
@@ -37,7 +41,12 @@ type ActiveLab =
   | 'sponsor';
 
 function App() {
-  const [activeLab, setActiveLab] = useState<ActiveLab>('home');
+  const [activeLab, setActiveLab] = useState<ActiveLab>(() => {
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('circle')) {
+      return 'community';
+    }
+    return 'home';
+  });
   const [showArchive, setShowArchive] = useState(false);
   const [showSafety, setShowSafety] = useState(false);
   const [sessionData, setSessionData] = useState<any>(null);
@@ -65,6 +74,18 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [activeLab]);
 
+  const handleUsePreset = (preset: Preset) => {
+    stashPresetForLab(preset.lab, preset);
+    const map: Record<string, ActiveLab> = {
+      rate: 'rate',
+      place: 'place',
+      frequency: 'frequency',
+      game: 'population',
+      daily: 'home',
+    };
+    setActiveLab(map[preset.lab] || 'community');
+  };
+
   const renderActiveLab = () => {
     if (isUnknownPath) {
       return (
@@ -85,6 +106,8 @@ function App() {
         return <PopulationLab onSessionUpdate={setSessionData} />;
       case 'frequency':
         return <FrequencyLab onSessionUpdate={setSessionData} />;
+      case 'community':
+        return <CommunityPage onUsePreset={handleUsePreset} />;
       case 'feedback':
         return <FeedbackPage />;
       case 'transparency':
@@ -156,6 +179,7 @@ function App() {
       {['home', 'connect', 'sponsor'].includes(activeLab) && !isUnknownPath && <EmailCapture />}
 
       <Footer onNavigate={(lab) => setActiveLab(lab as ActiveLab)} />
+      <AuthModal />
 
       {/* Enhanced Control Buttons - Only show for non-social pages */}
       {!['connect', 'sponsor'].includes(activeLab) && (
@@ -268,12 +292,19 @@ function HomePortal({
           >
             About the project
           </button>
+          <button
+            type="button"
+            onClick={() => onNavigate('community')}
+            className="inline-flex items-center gap-2 px-6 min-h-[48px] rounded-lg border border-purple-400/40 bg-purple-500/10 hover:bg-purple-500/20 text-purple-200 font-semibold"
+          >
+            <Users className="w-4 h-4" /> Community
+          </button>
         </div>
 
         <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-sm text-gray-400">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-green-400 rounded-full" aria-hidden="true"></div>
-            <span>Free &amp; no account</span>
+            <span>Free &amp; accounts optional</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-purple-400 rounded-full" aria-hidden="true"></div>

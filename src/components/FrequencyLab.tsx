@@ -5,6 +5,9 @@ import {
   Volume2, VolumeX, Info, HelpCircle, Zap, Waves, Music,
   Timer, TrendingUp, Eye, EyeOff, Sliders
 } from 'lucide-react';
+import PresetSaveButton from './PresetSaveButton';
+import { SessionShareButton, SessionSavedNote, useSessionRecorder, fmtDuration } from './SessionShare';
+import { consumePresetForLab } from '../lib/social';
 
 interface AudioConfig {
   id: string;
@@ -179,25 +182,32 @@ class AdvancedAudioEngine {
     const carrierOsc = this.audioContext.createOscillator();
     const modulatorOsc = this.audioContext.createOscillator();
     const modulatorGain = this.audioContext.createGain();
-    
+    const pulseGain = this.audioContext.createGain();
+
     carrierOsc.frequency.setValueAtTime(config.carrierFreq, this.audioContext.currentTime);
     carrierOsc.type = 'sine';
-    
-    modulatorOsc.frequency.setValueAtTime(config.frequency, this.audioContext.currentTime);
+
+    modulatorOsc.frequency.setValueAtTime(Math.max(0.1, config.frequency), this.audioContext.currentTime);
     modulatorOsc.type = 'square';
-    
+
+    // Square LFO output is +/-1. Depth 0.5 around a base of 0.5 gives a
+    // clean 0..1 pulse, so the volume parameter is never pushed negative.
+    pulseGain.gain.setValueAtTime(0.5, this.audioContext.currentTime);
     modulatorGain.gain.setValueAtTime(0.5, this.audioContext.currentTime);
-    
+
     modulatorOsc.connect(modulatorGain);
-    modulatorGain.connect(gainNode.gain);
-    
-    carrierOsc.connect(gainNode);
-    
+    modulatorGain.connect(pulseGain.gain);
+
+    carrierOsc.connect(pulseGain);
+    pulseGain.connect(gainNode);
+
     carrierOsc.start();
     modulatorOsc.start();
-    
+
     this.oscillators.set(config.id + '_carrier', carrierOsc);
     this.oscillators.set(config.id + '_modulator', modulatorOsc);
+    this.gainNodes.set(config.id + '_pulse', pulseGain);
+    this.gainNodes.set(config.id + '_mod', modulatorGain);
   }
 
   private createMonauralBeat(config: AudioConfig, gainNode: GainNode): void {
@@ -265,7 +275,7 @@ class AdvancedAudioEngine {
 
     // Clean up gain nodes
     this.gainNodes.forEach((gain, key) => {
-      if (key === id) {
+      if (key === id || key.startsWith(id + '_')) {
         gain.disconnect();
         this.gainNodes.delete(key);
       }
@@ -411,6 +421,40 @@ const FrequencyLab: React.FC<FrequencyLabProps> = ({ onSessionUpdate }) => {
   const sessionTimerRef = useRef<NodeJS.Timeout | null>(null);
   const rampingTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [frequencyData, setFrequencyData] = useState<Uint8Array | null>(null);
+  const [loadedPreset, setLoadedPreset] = useState('');
+  const [loadedPresetId, setLoadedPresetId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const pending = consumePresetForLab('frequency');
+    if (!pending) return;
+    const config = pending.config;
+    if (config && Array.isArray(config.audioConfigs)) {
+      setCurrentConfig((prev) => ({
+        ...prev,
+        ...config,
+        audioConfigs: config.audioConfigs.filter(
+          (item: any) => item && typeof item.id === 'string' && typeof item.frequency === 'number'
+        ),
+        backgroundSounds: Array.isArray(config.backgroundSounds)
+          ? config.backgroundSounds
+          : prev.backgroundSounds,
+      }));
+    }
+    setLoadedPreset(pending.title);
+    setLoadedPresetId(pending.id);
+  }, []);
+
+  const lastSession = useSessionRecorder({
+    lab: 'frequency',
+    playing: isPlaying,
+    details: {
+      name: currentConfig.name,
+      layers: currentConfig.audioConfigs.filter((item) => item.enabled).length,
+      carrier: currentConfig.audioConfigs[0]?.carrierFreq ?? null,
+      beat: currentConfig.audioConfigs[0]?.frequency ?? null,
+    },
+    presetId: loadedPresetId,
+  });
 
   // Frequency presets
   const frequencyPresets = [
@@ -465,7 +509,22 @@ const FrequencyLab: React.FC<FrequencyLabProps> = ({ onSessionUpdate }) => {
       if (sessionTimerRef.current) clearInterval(sessionTimerRef.current);
       if (rampingTimerRef.current) clearInterval(rampingTimerRef.current);
     };
-  }, [isPlaying, currentConfig.rampingEnabled]);
+  }, [
+    isPlaying,
+    currentConfig.rampingEnabled,
+    currentConfig.startFreq,
+    currentConfig.endFreq,
+    currentConfig.rampDuration,
+  ]);
+
+  // Stop cleanly when the configured session length is reached.
+  useEffect(() => {
+    if (!isPlaying || !currentConfig.duration) return;
+    if (sessionTime >= currentConfig.duration) {
+      audioEngineRef.current.stopAll();
+      setIsPlaying(false);
+    }
+  }, [sessionTime, isPlaying, currentConfig.duration]);
 
   useEffect(() => {
     onSessionUpdate?.({
@@ -715,6 +774,37 @@ const FrequencyLab: React.FC<FrequencyLabProps> = ({ onSessionUpdate }) => {
           </div>
         </div>
       </motion.div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <PresetSaveButton
+          lab="frequency"
+          config={currentConfig}
+          defaultTitle={`${currentConfig.name} · ${currentConfig.audioConfigs.filter((item) => item.enabled).length} layer${
+            currentConfig.audioConfigs.filter((item) => item.enabled).length === 1 ? '' : 's'
+          }`}
+        />
+        {(sessionTime >= 10 || lastSession) && (
+          <SessionShareButton
+            payload={{
+              kind: 'session',
+              badge: 'Frequency Lab session',
+              title: currentConfig.name,
+              subtitle: `${currentConfig.audioConfigs.filter((item) => item.enabled).length} active layer(s) · ${
+                currentConfig.audioConfigs[0]?.carrierFreq || 200
+              } Hz carrier`,
+              stats: [
+                { label: 'Session', value: fmtDuration(lastSession?.seconds || sessionTime) },
+                { label: 'Layers', value: String(currentConfig.audioConfigs.filter((item) => item.enabled).length) },
+                { label: 'Beat', value: `${currentConfig.audioConfigs[0]?.frequency ?? 0} Hz` },
+                { label: 'Carrier', value: `${currentConfig.audioConfigs[0]?.carrierFreq ?? 0} Hz` },
+              ],
+              caption: `${currentConfig.name} — a layered Frequency Lab session.`,
+            }}
+          />
+        )}
+        {loadedPreset && <span className="text-xs text-cyan-300">Loaded preset: {loadedPreset}</span>}
+        <SessionSavedNote last={lastSession} />
+      </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
         {/* Audio Configurations Panel */}

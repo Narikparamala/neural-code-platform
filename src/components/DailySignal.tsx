@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Play, Square, Headphones, Star, Check, Loader2, AlertCircle } from 'lucide-react';
 import { submitReview } from '../lib/supabase';
+import { SessionShareButton, SessionSavedNote, useSessionRecorder } from './SessionShare';
 
 type Goal = 'calm' | 'focus' | 'sleep' | 'curiosity';
 
@@ -61,6 +62,17 @@ export default function DailySignal() {
   const ctxRef = useRef<AudioContext | null>(null);
   const gainRef = useRef<GainNode | null>(null);
   const timerRef = useRef<number | null>(null);
+
+  const lastSession = useSessionRecorder({
+    lab: 'daily',
+    playing: phase === 'running',
+    details: {
+      goal,
+      minutes,
+      beat: GOALS[goal].beat,
+      carrier: GOALS[goal].carrier,
+    },
+  });
 
   const stopAudio = (fade = 0.4) => {
     const ctx = ctxRef.current;
@@ -350,6 +362,21 @@ export default function DailySignal() {
               )}
               {sendState === 'sent' ? 'Sent' : 'Submit rating'}
             </button>
+            <SessionShareButton
+              payload={{
+                kind: 'session',
+                badge: 'Daily Signal',
+                title: `${GOALS[goal].label} · ${minutes} min`,
+                subtitle: `${GOALS[goal].beat} Hz beat · ${GOALS[goal].carrier} Hz carrier`,
+                stats: [
+                  { label: 'Length', value: `${minutes} min` },
+                  { label: 'Beat', value: `${GOALS[goal].beat} Hz` },
+                  { label: 'Carrier', value: `${GOALS[goal].carrier} Hz` },
+                  { label: 'Goal', value: GOALS[goal].label },
+                ],
+                caption: `${GOALS[goal].label} — a ${minutes}-minute Daily Signal session.`,
+              }}
+            />
             {sendMsg && (
               <span
                 className={`text-sm inline-flex items-center gap-1 ${
@@ -361,6 +388,9 @@ export default function DailySignal() {
                 {sendMsg}
               </span>
             )}
+          </div>
+          <div className="mt-3">
+            <SessionSavedNote last={lastSession} />
           </div>
         </form>
       )}

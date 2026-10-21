@@ -1,7 +1,7 @@
 ﻿# CosmicSpirit0 — Neural Code Platform
 
 Free, browser-based tools for brainwave entrainment, 3D spatial audio and attention training.
-No install, no account, no paywall.
+No install, no paywall. Accounts are optional and only unlock the community layer.
 
 **Live:** https://neural-code-platform.vercel.app/
 
@@ -15,6 +15,7 @@ No install, no account, no paywall.
 | **Place Lab** | 3D spatial audio using HRTF processing, an interactive brain model and cochlear mapping |
 | **Game Lab** | 60-second attention training — hit the active neural cluster, build a streak, beat your best |
 | **Frequency Lab** | Multi-method entrainment, custom presets, layered background noise, session timer |
+| **Community** | People logins, shared presets with reviews, small-group Circles, session history and streaks, share cards |
 | **Feedback** | Star reviews (moderated) and a public suggestions board |
 | **Connect** | Community stories, Instagram, Telegram, YouTube and TikTok |
 | **About** | Vision, mission, goals, principles and roadmap |
@@ -28,7 +29,7 @@ No install, no account, no paywall.
 - Tailwind CSS + Framer Motion
 - three.js / @react-three/fiber (Place Lab, lazy-loaded)
 - d3 (oscilloscope)
-- Supabase (Postgres + Row Level Security) for the newsletter, stories, reviews and suggestions
+- Supabase (Postgres + Row Level Security + Auth) for the newsletter, community, stories, reviews and suggestions
 - Web Audio API — all audio is generated in the browser, nothing is uploaded
 
 ## Backend
@@ -44,10 +45,19 @@ Supabase project `cosmicspirit0` (`jdwiggwqsyeopcgrovjm`), tables:
 | `suggestions` | insert + read all | change status, delete |
 | `site_settings` | read the single row | update logo + social links |
 | `sponsor_leads` | insert (sponsor form) | read / status / delete / CSV export |
+| `profiles` | read public profile fields | read / update all |
+| `presets` | read `is_public = true` | full access |
+| `preset_reviews` | read all + insert/update own | full access |
+| `preset_likes` | read all + manage own | full access |
+| `sessions` | nothing (owner only) | owner can read/delete own; admin can read |
+| `circles` | read public or joined | owner manages |
+| `circle_members` | members can read | owner manages |
+| `circle_messages` | members can read/write | admin can delete |
 
 Row Level Security allows anonymous inserts only; reads are limited to approved/published rows.
 Admin policies match the owner's email in the JWT, so a normal signup can never read submissions.
 `site_stats()` is a read-only SQL function used by the Transparency page to publish real counts.
+The social schema lives in `supabase/migrations/20261021_social_layer.sql`.
 
 Admin console: **/admin.html** (email + password, same as the Supabase Auth user). The
 **Site settings** tab edits the logo and the Instagram, Telegram, YouTube, TikTok and support URLs
@@ -57,6 +67,29 @@ without touching code. The **Sponsor leads** tab holds private enquiries with a 
 Sponsor enquiries are never published or added to the newsletter. Support buttons use preset
 `paypal.me` amounts and are labelled one-time; recurring invoices are arranged manually until a
 payment provider is connected.
+
+## Community (people, presets, circles)
+
+Accounts are email + password through Supabase Auth. Signup is enabled with auto-confirm, so a
+listener can start immediately; the account email is never added to the newsletter automatically.
+A database trigger creates a profile with a unique handle, and the Profile tab lets the person
+change their display name, handle and bio.
+
+- **Shared presets** — Rate, Place and Frequency Labs have **Save as preset**. Public presets can
+  be filtered by lab, sorted by newest / rating / plays, liked, reviewed (one review per person,
+  1–5 stars) and loaded back into the lab with **Use in lab**.
+- **Circles** — small public or private groups. Owners get an invite code and link
+  (`?circle=CODE`), members get a chronological chat, and any message can carry one of the
+  sender's presets as an attachment. Messages are visible only to members.
+- **Sessions and streaks** — playback of 10+ seconds records a private session, updates total
+  minutes and advances the daily streak. Only the owner can read their history.
+- **Share cards** — a 1080×1350 PNG generated in the browser with only the visible session or
+  profile facts; Web Share API where supported, download otherwise.
+
+The social design is a deliberate, limited translation of WhatsApp's useful primitives
+(identity, invite links, threads, unread state, exit controls) without claiming end-to-end
+encryption or copying a follower graph. The teardown and the omissions are documented in
+[`docs/whatsapp-feature-map.md`](docs/whatsapp-feature-map.md).
 
 ## Newsletter (double opt-in)
 
@@ -71,17 +104,19 @@ The newsletter is driven by three Vercel Functions in `api/` and two server keys
    branded HTML, adds a per-recipient unsubscribe link, logs the result in `newsletter_sends`, and
    refuses to send above the daily provider cap.
 
-Email delivery supports two providers, selected by env vars:
+Email delivery supports two providers, and uses both at once:
 
-- **Brevo** — set `BREVO_API_KEY` plus `BREVO_SENDER_EMAIL`. Best deliverability; the free plan is
-  300 emails/day. Brevo blocks API-key creation until the account phone is verified.
-- **Google Apps Script relay** — set `EMAIL_WEBHOOK_URL` and `EMAIL_WEBHOOK_SECRET`. Free, sends as
-  the project Gmail account, about 100 emails/day. The relay code lives in the Apps Script project
-  and rejects any request without the shared secret. See `.env.example` for the full list.
+- **Brevo (primary)** — set `BREVO_API_KEY` plus `BREVO_SENDER_EMAIL`. Best deliverability; the free
+  plan is 300 emails/day. When a send fails, the code automatically retries through the relay.
+- **Google Apps Script relay (fallback)** — set `EMAIL_WEBHOOK_URL` and `EMAIL_WEBHOOK_SECRET`.
+  Free, sends as the project Gmail account, about 100 emails/day. The relay code lives in the Apps
+  Script project and rejects any request without the shared secret. See `.env.example` for the
+  full list.
 
-The admin **Newsletter** tab shows confirmed / pending / unsubscribed counts, the active provider,
-the per-send cap, a test send, and the recent send log. Only confirmed addresses are ever mailed.
-Every email includes a one-click unsubscribe link and the postal address in `POSTAL_ADDRESS`.
+The admin **Newsletter** tab shows confirmed / pending / unsubscribed counts, the active provider
+(“Brevo (primary) + Gmail relay (fallback)”), the per-send cap, a test send, and the recent send
+log. Only confirmed addresses are ever mailed. Every email includes a one-click unsubscribe link
+and the postal address in `POSTAL_ADDRESS`.
 
 ## Deploy
 

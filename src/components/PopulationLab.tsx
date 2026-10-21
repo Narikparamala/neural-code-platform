@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Users, Brain, Play, RotateCcw, Timer, Target } from 'lucide-react';
+import { SessionShareButton, SessionSavedNote, useSessionRecorder } from './SessionShare';
 
 interface PopulationLabProps {
   onSessionUpdate: (data: any) => void;
@@ -80,6 +81,12 @@ const PopulationLab: React.FC<PopulationLabProps> = ({ onSessionUpdate }) => {
 
   const accuracy = hits + misses > 0 ? Math.round((hits / (hits + misses)) * 100) : 0;
   const progress = ((ROUND_SECONDS - timeLeft) / ROUND_SECONDS) * 100;
+
+  const lastSession = useSessionRecorder({
+    lab: 'game',
+    playing: running,
+    details: { score, hits, misses, accuracy },
+  });
 
   const clusterClass = (side: Side) => {
     const isTarget = running && target === side;
@@ -201,13 +208,31 @@ const PopulationLab: React.FC<PopulationLabProps> = ({ onSessionUpdate }) => {
                   <p className="text-gray-300 text-sm">
                     Accuracy {accuracy}% &middot; {hits} hits &middot; {misses} misses
                   </p>
-                  <button
-                    type="button"
-                    onClick={start}
-                    className="inline-flex items-center gap-2 px-8 py-4 min-h-[44px] bg-purple-600 hover:bg-purple-700 rounded-lg font-semibold transition-colors"
-                  >
-                    <RotateCcw className="w-5 h-5" /> Play again
-                  </button>
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    <button
+                      type="button"
+                      onClick={start}
+                      className="inline-flex items-center gap-2 px-8 py-4 min-h-[44px] bg-purple-600 hover:bg-purple-700 rounded-lg font-semibold transition-colors"
+                    >
+                      <RotateCcw className="w-5 h-5" /> Play again
+                    </button>
+                    <SessionShareButton
+                      payload={{
+                        kind: 'session',
+                        badge: 'Game Lab round',
+                        title: `${score} points`,
+                        subtitle: `${accuracy}% accuracy · 60-second attention round`,
+                        stats: [
+                          { label: 'Score', value: String(score) },
+                          { label: 'Accuracy', value: `${accuracy}%` },
+                          { label: 'Hits', value: String(hits) },
+                          { label: 'Misses', value: String(misses) },
+                        ],
+                        caption: `I scored ${score} points with ${accuracy}% accuracy in the CosmicSpirit0 Game Lab.`,
+                      }}
+                    />
+                  </div>
+                  <SessionSavedNote last={lastSession} />
                 </div>
               )}
             </div>
@@ -215,7 +240,8 @@ const PopulationLab: React.FC<PopulationLabProps> = ({ onSessionUpdate }) => {
 
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-500">
-              Algorithm: attention_score = (cluster_accuracy &times; session_duration) &divide; distractions
+              Score = hits minus misses. This is a simple reaction task, not a measure of attention or
+              brain activity.
             </p>
           </div>
         </div>

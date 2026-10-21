@@ -1,4 +1,4 @@
-import { config as emailConfig, emailConfigured, layout, providerName, sendEmail, textToHtml } from '../lib/email.js';
+import { config as emailConfig, emailConfigured, layout, providerLabel, providerName, sendEmail, textToHtml } from '../lib/email.js';
 import { getUserFromToken, isAdmin, readBody, rest, sendJson } from '../lib/supabaseAdmin.js';
 
 const CONCURRENCY = 6;
@@ -6,7 +6,7 @@ const CONCURRENCY = 6;
 function capFor(provider) {
   const override = Number(process.env.MAX_EMAILS_PER_SEND || 0);
   if (override > 0) return override;
-  return provider === 'brevo' ? 290 : 90;
+  return provider && provider.includes('brevo') ? 290 : 90;
 }
 
 async function caller(req) {
@@ -57,6 +57,7 @@ export default async function handler(req, res) {
       ok: true,
       configured: emailConfigured(),
       provider,
+      providerLabel: providerLabel(),
       cap: capFor(provider),
       counts,
     });

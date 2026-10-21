@@ -11,12 +11,15 @@ import {
   Heart,
   ExternalLink,
   MessageSquareHeart,
+  MessageCircle,
   ChevronDown,
   Info,
   BookOpen,
   FileText,
+  LogIn,
 } from 'lucide-react';
 import { useSiteSettings } from '../lib/siteSettings';
+import { useAuth, initials } from '../lib/auth';
 
 interface NavigationPortalProps {
   activeLab: string;
@@ -32,6 +35,7 @@ export default function NavigationPortal({
   setIsMobileMenuOpen,
 }: NavigationPortalProps) {
   const settings = useSiteSettings();
+  const { user, profile, openAuth } = useAuth();
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
 
@@ -41,13 +45,14 @@ export default function NavigationPortal({
     { id: 'place', name: 'Place Lab', icon: Globe },
     { id: 'population', name: 'Game Lab', icon: Users },
     { id: 'frequency', name: 'Frequency Lab', icon: Zap },
-    { id: 'feedback', name: 'Feedback', icon: MessageSquareHeart },
+    { id: 'community', name: 'Community', icon: MessageCircle },
     { id: 'connect', name: 'Connect', icon: ExternalLink },
   ];
 
   const moreLinks = [
     { id: 'about', name: 'About', icon: Info },
     { id: 'research', name: 'Research & evidence', icon: BookOpen },
+    { id: 'feedback', name: 'Feedback & reviews', icon: MessageSquareHeart },
     { id: 'transparency', name: 'Transparency', icon: FileText },
     { id: 'sponsor', name: 'Sponsor', icon: Heart },
   ];
@@ -74,6 +79,21 @@ export default function NavigationPortal({
     onLabSelect(id);
     setMoreOpen(false);
     setIsMobileMenuOpen(false);
+  };
+
+  const openProfile = () => {
+    try {
+      sessionStorage.setItem('cs0:community-tab', 'profile');
+    } catch {
+      /* storage can be blocked */
+    }
+    onLabSelect('community');
+    setMoreOpen(false);
+    setIsMobileMenuOpen(false);
+    window.setTimeout(
+      () => window.dispatchEvent(new CustomEvent('cs0:community-tab', { detail: 'profile' })),
+      60
+    );
   };
 
   return (
@@ -179,6 +199,32 @@ export default function NavigationPortal({
             </div>
           </nav>
 
+          {/* Account */}
+          {user && profile ? (
+            <button
+              type="button"
+              onClick={openProfile}
+              className="hidden lg:inline-flex items-center gap-2 min-h-[44px] pl-1 pr-2 rounded-full border border-gray-700 hover:border-purple-500/60 bg-gray-800/60 flex-shrink-0"
+              aria-label="Your listener profile"
+              title={`@${profile.handle}`}
+            >
+              <span className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center text-[11px] font-black text-gray-950">
+                {initials(profile.display_name)}
+              </span>
+              <span className="hidden xl:block text-sm font-semibold max-w-[90px] truncate">
+                {profile.display_name}
+              </span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => openAuth('signin')}
+              className="hidden lg:inline-flex items-center gap-2 min-h-[44px] px-3 rounded-lg border border-purple-500/40 bg-purple-500/10 hover:bg-purple-500/20 text-sm font-semibold flex-shrink-0"
+            >
+              <LogIn className="w-4 h-4" /> Sign in
+            </button>
+          )}
+
           {/* Menu button */}
           <button
             type="button"
@@ -218,6 +264,25 @@ export default function NavigationPortal({
                   </button>
                 );
               })}
+              <button
+                type="button"
+                onClick={() => (user ? openProfile() : openAuth('signin'))}
+                className="w-full flex items-center gap-3 px-4 min-h-[48px] rounded-lg text-left text-gray-300 hover:text-white hover:bg-gray-700 border-t border-gray-800 mt-1 pt-1"
+              >
+                {user && profile ? (
+                  <>
+                    <span className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center text-[10px] font-black text-gray-950 flex-shrink-0">
+                      {initials(profile.display_name)}
+                    </span>
+                    <span className="truncate">My profile · @{profile.handle}</span>
+                  </>
+                ) : (
+                  <>
+                    <LogIn className="w-5 h-5 flex-shrink-0" />
+                    <span>Sign in / create account</span>
+                  </>
+                )}
+              </button>
             </nav>
           </motion.div>
         )}

@@ -4,6 +4,9 @@ import { Globe, Info, Play, Pause, RotateCcw, Brain, Headphones, Volume2, Volume
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Sphere, Text } from '@react-three/drei';
 import * as THREE from 'three';
+import PresetSaveButton from './PresetSaveButton';
+import { SessionShareButton, SessionSavedNote, useSessionRecorder, fmtDuration } from './SessionShare';
+import { consumePresetForLab } from '../lib/social';
 
 interface PlaceLabProps {
   onSessionUpdate: (data: any) => void;
@@ -63,7 +66,7 @@ class SpatialAudioAI {
     
     // Simulate accuracy based on source distribution and user interactions
     const activeSourceCount = sources.filter(s => s.active).length;
-    const interactionVariance = this.calculateVariance(interactions.map(i => i.responseTime || 1000));
+    const interactionVariance = this.calculateVariance(interactions.map(i => i.gap || 1000));
     
     // Higher accuracy with more sources and consistent interactions
     const baseAccuracy = Math.min(activeSourceCount * 20, 80);
@@ -76,7 +79,7 @@ class SpatialAudioAI {
     if (interactions.length === 0) return 0;
     
     // Simulate localization based on interaction patterns
-    const avgResponseTime = interactions.reduce((sum, i) => sum + (i.responseTime || 1000), 0) / interactions.length;
+    const avgResponseTime = interactions.reduce((sum, i) => sum + (i.gap || 1000), 0) / interactions.length;
     const score = Math.max(0, 100 - (avgResponseTime - 500) / 10);
     
     return Math.min(100, Math.max(0, score));
@@ -255,6 +258,48 @@ const PlaceLab: React.FC<PlaceLabProps> = ({ onSessionUpdate }) => {
     { id: 'bottom', position: [0, -3, 0], frequency: 330, active: false, label: 'Bottom' }
   ]);
 
+  const lastInteractionRef = useRef(0);
+  const [loadedPreset, setLoadedPreset] = useState('');
+  const [loadedPresetId, setLoadedPresetId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const pending = consumePresetForLab('place');
+    if (!pending) return;
+    const config = pending.config;
+    if (config && Array.isArray(config.soundSources)) {
+      setSoundSources((prev) =>
+        prev.map((source) => {
+          const saved = config.soundSources.find((item: any) => item && item.id === source.id);
+          if (!saved) return source;
+          return {
+            ...source,
+            active: typeof saved.active === 'boolean' ? saved.active : source.active,
+            frequency:
+              typeof saved.frequency === 'number' && saved.frequency > 0
+                ? saved.frequency
+                : source.frequency,
+            position:
+              Array.isArray(saved.position) && saved.position.length === 3
+                ? (saved.position.map(Number) as [number, number, number])
+                : source.position,
+          };
+        })
+      );
+    }
+    setLoadedPreset(pending.title);
+    setLoadedPresetId(pending.id);
+  }, []);
+
+  const lastSession = useSessionRecorder({
+    lab: 'place',
+    playing: isPlaying,
+    details: {
+      activeSources: soundSources.filter((source) => source.active).length,
+      preset: selectedPreset || loadedPreset || null,
+    },
+    presetId: loadedPresetId,
+  });
+
   const presets = [
     { 
       name: 'Basic Stereo Test', 
@@ -367,80 +412,109 @@ const PlaceLab: React.FC<PlaceLabProps> = ({ onSessionUpdate }) => {
     return { oscillator, gainNode, pannerNode };
   };
 
+  const stopSource = (id: string) => {
+    const nodes = sourceNodesRef.current.get(id);
+    if (!nodes) return;
+    try {
+      nodes.oscillator.stop();
+    } catch {
+      /* already stopped */
+    }
+    try {
+      nodes.oscillator.disconnect();
+      nodes.gainNode.disconnect();
+      nodes.pannerNode.disconnect();
+    } catch {
+      /* nodes already detached */
+    }
+    sourceNodesRef.current.delete(id);
+  };
+
+  const stopAllSources = (closeContext = false) => {
+    Array.from(sourceNodesRef.current.keys()).forEach(stopSource);
+    if (closeContext) {
+      const ctx = audioContextRef.current;
+      audioContextRef.current = null;
+      if (ctx && ctx.state !== 'closed') {
+        ctx.close().catch(() => undefined);
+      }
+    }
+  };
+
+  const startSource = (source: SoundSource) => {
+    try {
+      const nodes = createSpatialAudio(source);
+      nodes.oscillator.start();
+      sourceNodesRef.current.set(source.id, nodes);
+    } catch {
+      /* AudioContext can be unavailable */
+    }
+  };
+
+  const restartAudio = (sources: SoundSource[]) => {
+    stopAllSources(false);
+    sources.filter((source) => source.active).forEach(startSource);
+  };
+
+  // Leaving the lab must never leave a tone running.
+  useEffect(() => {
+    return () => {
+      stopAllSources(true);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handlePlay = () => {
     if (isPlaying) {
-      // Stop all sources
-      sourceNodesRef.current.forEach((nodes) => {
-        nodes.oscillator.stop();
-      });
-      sourceNodesRef.current.clear();
+      stopAllSources(false);
       setIsPlaying(false);
     } else {
-      // Start active sources
-      soundSources.forEach((source) => {
-        if (source.active) {
-          const nodes = createSpatialAudio(source);
-          nodes.oscillator.start();
-          sourceNodesRef.current.set(source.id, nodes);
-        }
-      });
+      soundSources.filter((source) => source.active).forEach(startSource);
       setIsPlaying(true);
     }
   };
 
   const handleReset = () => {
-    sourceNodesRef.current.forEach((nodes) => {
-      nodes.oscillator.stop();
-    });
-    sourceNodesRef.current.clear();
+    stopAllSources(true);
     setIsPlaying(false);
     setSessionTime(0);
     setUserInteractions([]);
     setAiAnalysis(null);
+    lastInteractionRef.current = 0;
     setSoundSources(prev => prev.map(s => ({ ...s, active: s.id === 'front' })));
   };
 
   const handlePresetSelect = (preset: typeof presets[0]) => {
-    setSoundSources(prev => prev.map(source => ({
+    const next = soundSources.map(source => ({
       ...source,
       active: preset.sources.includes(source.id),
       frequency: preset.sources.includes(source.id) 
         ? preset.frequencies[preset.sources.indexOf(source.id)] 
         : source.frequency
-    })));
+    }));
+    setSoundSources(next);
     setSelectedPreset(preset.name);
+    if (isPlaying) restartAudio(next);
   };
 
   const toggleSource = (sourceId: string) => {
-    setSoundSources(prev => prev.map(source => 
+    const next = soundSources.map(source =>
       source.id === sourceId ? { ...source, active: !source.active } : source
-    ));
-    
-    // Record user interaction
+    );
+    setSoundSources(next);
+
+    // Record a real timing gap, not a simulated one.
+    const now = Date.now();
+    const gap = lastInteractionRef.current ? now - lastInteractionRef.current : 1000;
+    lastInteractionRef.current = now;
     setUserInteractions(prev => [...prev, {
-      timestamp: Date.now(),
+      timestamp: now,
       action: 'toggle_source',
       sourceId,
-      responseTime: Math.random() * 1000 + 500 // Simulate response time
+      gap
     }]);
 
-    // Update audio in real-time if playing
-    if (isPlaying) {
-      const source = soundSources.find(s => s.id === sourceId);
-      if (source) {
-        if (sourceNodesRef.current.has(sourceId)) {
-          // Stop existing source
-          const nodes = sourceNodesRef.current.get(sourceId);
-          nodes.oscillator.stop();
-          sourceNodesRef.current.delete(sourceId);
-        } else {
-          // Start new source
-          const nodes = createSpatialAudio({ ...source, active: true });
-          nodes.oscillator.start();
-          sourceNodesRef.current.set(sourceId, nodes);
-        }
-      }
-    }
+    if (isPlaying) restartAudio(next);
   };
 
   const exportSession = () => {
@@ -470,6 +544,15 @@ const PlaceLab: React.FC<PlaceLabProps> = ({ onSessionUpdate }) => {
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  const activeCount = soundSources.filter((source) => source.active).length;
+  const activeFreqs = soundSources.filter((source) => source.active).map((source) => source.frequency);
+  const freqRange = activeFreqs.length
+    ? `${Math.min(...activeFreqs)}–${Math.max(...activeFreqs)} Hz`
+    : '—';
+  const distinctPositions = new Set(
+    soundSources.filter((source) => source.active).map((source) => source.position.join(','))
+  ).size;
 
   return (
     <div className="max-w-7xl mx-auto p-4 lg:p-6 space-y-6">
@@ -502,6 +585,36 @@ const PlaceLab: React.FC<PlaceLabProps> = ({ onSessionUpdate }) => {
           </div>
         </div>
       </motion.div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <PresetSaveButton
+          lab="place"
+          config={{ soundSources }}
+          defaultTitle={
+            selectedPreset ||
+            `${soundSources.filter((source) => source.active).length}-source space`
+          }
+        />
+        {(sessionTime >= 10 || lastSession) && (
+          <SessionShareButton
+            payload={{
+              kind: 'session',
+              badge: 'Place Lab session',
+              title: selectedPreset || `${soundSources.filter((source) => source.active).length}-source space`,
+              subtitle: `${soundSources.filter((source) => source.active).length} active source(s) · HRTF spatial panning`,
+              stats: [
+                { label: 'Session', value: fmtDuration(lastSession?.seconds || sessionTime) },
+                { label: 'Sources', value: String(soundSources.filter((source) => source.active).length) },
+                { label: 'Space', value: '3D / HRTF' },
+                { label: 'Preset', value: selectedPreset ? 'Yes' : 'Custom' },
+              ],
+              caption: `A ${fmtDuration(lastSession?.seconds || sessionTime)} Place Lab session in 3D space.`,
+            }}
+          />
+        )}
+        {loadedPreset && <span className="text-xs text-emerald-300">Loaded preset: {loadedPreset}</span>}
+        <SessionSavedNote last={lastSession} />
+      </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Controls Panel */}
@@ -648,16 +761,21 @@ const PlaceLab: React.FC<PlaceLabProps> = ({ onSessionUpdate }) => {
           transition={{ duration: 0.5, delay: 0.6 }}
           className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700"
         >
-          <h3 className="text-2xl font-bold mb-6 flex items-center gap-2">
+          <h3 className="text-2xl font-bold mb-2 flex items-center gap-2">
             <Brain className="w-6 h-6 text-purple-400" />
-            AI Spatial Audio Analysis
+            Practice feedback
+            <span className="text-sm font-normal text-gray-400">(heuristic, not a measurement)</span>
           </h3>
+          <p className="text-sm text-gray-400 mb-6">
+            Generated locally from your source toggles and timing. It is not brain data, not an HRTF
+            measurement, and not medical information.
+          </p>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Metrics */}
             <div className="space-y-4">
               <div className="p-4 bg-gray-700/50 rounded-lg">
-                <h4 className="font-semibold mb-2">Spatial Accuracy</h4>
+                <h4 className="font-semibold mb-2">Source spread</h4>
                 <div className="text-2xl font-mono text-green-400">{aiAnalysis.spatialAccuracy.toFixed(1)}%</div>
                 <div className="w-full bg-gray-600 rounded-full h-2 mt-2">
                   <div 
@@ -668,7 +786,7 @@ const PlaceLab: React.FC<PlaceLabProps> = ({ onSessionUpdate }) => {
               </div>
               
               <div className="p-4 bg-gray-700/50 rounded-lg">
-                <h4 className="font-semibold mb-2">Localization Score</h4>
+                <h4 className="font-semibold mb-2">Interaction pace</h4>
                 <div className="text-2xl font-mono text-blue-400">{aiAnalysis.localizationScore.toFixed(1)}%</div>
                 <div className="w-full bg-gray-600 rounded-full h-2 mt-2">
                   <div 
@@ -679,41 +797,36 @@ const PlaceLab: React.FC<PlaceLabProps> = ({ onSessionUpdate }) => {
               </div>
             </div>
 
-            {/* Brain Activation */}
-            <div className="space-y-4">
-              <h4 className="font-semibold">Brain Region Activation</h4>
-              {Object.entries(aiAnalysis.brainRegionActivation).map(([region, activation]) => (
-                <div key={region} className="p-3 bg-gray-700/50 rounded-lg">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-sm capitalize">{region.replace(/([A-Z])/g, ' $1').trim()}</span>
-                    <span className="text-sm font-mono">{activation.toFixed(1)}%</span>
-                  </div>
-                  <div className="w-full bg-gray-600 rounded-full h-1">
-                    <div 
-                      className="bg-purple-400 h-1 rounded-full transition-all duration-500"
-                      style={{ width: `${activation}%` }}
-                    ></div>
-                  </div>
-                </div>
-              ))}
+            {/* Session snapshot */}
+            <div className="space-y-3">
+              <h4 className="font-semibold">Session snapshot</h4>
+              <div className="p-3 bg-gray-700/50 rounded-lg flex justify-between text-sm">
+                <span>Active sources</span>
+                <span className="font-mono">{activeCount}</span>
+              </div>
+              <div className="p-3 bg-gray-700/50 rounded-lg flex justify-between text-sm">
+                <span>Frequency range</span>
+                <span className="font-mono">{freqRange}</span>
+              </div>
+              <div className="p-3 bg-gray-700/50 rounded-lg flex justify-between text-sm">
+                <span>Distinct positions</span>
+                <span className="font-mono">{distinctPositions}</span>
+              </div>
             </div>
 
-            {/* HRTF Effectiveness */}
+            {/* HRTF */}
             <div className="p-4 bg-gray-700/50 rounded-lg">
-              <h4 className="font-semibold mb-2">HRTF Effectiveness</h4>
-              <div className="text-2xl font-mono text-yellow-400">{aiAnalysis.hrtfEffectiveness.toFixed(1)}%</div>
-              <div className="w-full bg-gray-600 rounded-full h-2 mt-2">
-                <div 
-                  className="bg-yellow-400 h-2 rounded-full transition-all duration-500"
-                  style={{ width: `${aiAnalysis.hrtfEffectiveness}%` }}
-                ></div>
-              </div>
-              <p className="text-xs text-gray-400 mt-2">Head-Related Transfer Function processing quality</p>
+              <h4 className="font-semibold mb-2">HRTF filter</h4>
+              <div className="text-2xl font-mono text-yellow-400">{isPlaying ? 'On' : 'Idle'}</div>
+              <p className="text-xs text-gray-400 mt-2">
+                The browser’s Head-Related Transfer Function model is used while audio plays. This is
+                a processing state, not a quality score.
+              </p>
             </div>
 
             {/* Recommendations */}
             <div className="space-y-2">
-              <h4 className="font-semibold">AI Recommendations</h4>
+              <h4 className="font-semibold">Ideas to try</h4>
               {aiAnalysis.recommendations.map((rec, index) => (
                 <div key={index} className="p-3 bg-blue-900/20 rounded-lg border border-blue-500/30">
                   <p className="text-sm">{rec}</p>

@@ -1,4 +1,4 @@
-import React, { useRef, useImperativeHandle, forwardRef } from 'react';
+import React, { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 
 interface BinauralGeneratorProps {
   baseFreq: number;
@@ -9,176 +9,224 @@ interface BinauralGeneratorProps {
   beatPatternEnabled: boolean;
 }
 
+type NodeRefs = {
+  left?: OscillatorNode;
+  right?: OscillatorNode;
+  mono?: OscillatorNode;
+  carrier?: OscillatorNode;
+  lfo?: OscillatorNode;
+  leftGain?: GainNode;
+  rightGain?: GainNode;
+  monoGain?: GainNode;
+  isoGain?: GainNode;
+  lfoDepth?: GainNode;
+};
+
 const BinauralGenerator = forwardRef<any, BinauralGeneratorProps>(
-  ({ baseFreq, deltaFreq, audioMode, leftEarEnabled, rightEarEnabled, beatPatternEnabled }, ref) => {
-    const audioContextRef = useRef<AudioContext | null>(null);
-    const leftOscRef = useRef<OscillatorNode | null>(null);
-    const rightOscRef = useRef<OscillatorNode | null>(null);
-    const isoOscRef = useRef<OscillatorNode | null>(null);
-    const leftGainRef = useRef<GainNode | null>(null);
-    const rightGainRef = useRef<GainNode | null>(null);
-    const isoGainRef = useRef<GainNode | null>(null);
+  (props, ref) => {
+    const { baseFreq, deltaFreq, audioMode, leftEarEnabled, rightEarEnabled, beatPatternEnabled } = props;
+    const ctxRef = useRef<AudioContext | null>(null);
     const isPlayingRef = useRef(false);
+    const nodesRef = useRef<OscillatorNode[]>([]);
+    const partsRef = useRef<AudioNode[]>([]);
+    const refs = useRef<NodeRefs>({});
+    const propsRef = useRef(props);
+    propsRef.current = props;
+
+    const clearGraph = () => {
+      nodesRef.current.forEach((node) => {
+        try {
+          node.stop();
+        } catch {
+          /* already stopped */
+        }
+        try {
+          node.disconnect();
+        } catch {
+          /* already detached */
+        }
+      });
+      partsRef.current.forEach((node) => {
+        try {
+          node.disconnect();
+        } catch {
+          /* already detached */
+        }
+      });
+      nodesRef.current = [];
+      partsRef.current = [];
+      refs.current = {};
+    };
+
+    const buildGraph = () => {
+      const p = propsRef.current;
+      let ctx = ctxRef.current;
+      if (!ctx || ctx.state === 'closed') {
+        ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        ctxRef.current = ctx;
+      }
+      if (ctx.state === 'suspended') {
+        void ctx.resume();
+      }
+      const dest = ctx.destination;
+
+      if (p.audioMode === 'binaural') {
+        const left = ctx.createOscillator();
+        const right = ctx.createOscillator();
+        const leftGain = ctx.createGain();
+        const rightGain = ctx.createGain();
+        const leftPan = ctx.createStereoPanner();
+        const rightPan = ctx.createStereoPanner();
+
+        left.frequency.value = p.baseFreq;
+        right.frequency.value = p.baseFreq + (p.beatPatternEnabled ? p.deltaFreq : 0);
+        leftGain.gain.value = p.leftEarEnabled ? 0.1 : 0;
+        rightGain.gain.value = p.rightEarEnabled ? 0.1 : 0;
+        leftPan.pan.value = -1;
+        rightPan.pan.value = 1;
+
+        left.connect(leftGain).connect(leftPan).connect(dest);
+        right.connect(rightGain).connect(rightPan).connect(dest);
+        left.start();
+        right.start();
+
+        nodesRef.current.push(left, right);
+        partsRef.current.push(leftGain, rightGain, leftPan, rightPan);
+        refs.current = { left, right, leftGain, rightGain };
+        return;
+      }
+
+      if (p.audioMode === 'isochronic') {
+        const carrier = ctx.createOscillator();
+        const isoGain = ctx.createGain();
+        carrier.frequency.value = p.baseFreq;
+
+        if (p.beatPatternEnabled) {
+          const lfo = ctx.createOscillator();
+          const lfoDepth = ctx.createGain();
+          lfo.type = 'square';
+          lfo.frequency.value = Math.max(0.1, p.deltaFreq);
+          // Oscillate the carrier between silence and full gain without
+          // touching any volume parameter.
+          isoGain.gain.value = 0.05;
+          lfoDepth.gain.value = 0.05;
+          lfo.connect(lfoDepth).connect(isoGain.gain);
+          lfo.start();
+          nodesRef.current.push(lfo);
+          partsRef.current.push(lfoDepth);
+          refs.current.lfo = lfo;
+          refs.current.lfoDepth = lfoDepth;
+        } else {
+          isoGain.gain.value = 0.1;
+        }
+
+        carrier.connect(isoGain).connect(dest);
+        carrier.start();
+        nodesRef.current.push(carrier);
+        partsRef.current.push(isoGain);
+        refs.current.carrier = carrier;
+        refs.current.isoGain = isoGain;
+        return;
+      }
+
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.frequency.value = p.deltaFreq;
+      gain.gain.value = p.leftEarEnabled || p.rightEarEnabled ? 0.1 : 0;
+      osc.connect(gain).connect(dest);
+      osc.start();
+      nodesRef.current.push(osc);
+      partsRef.current.push(gain);
+      refs.current = { mono: osc, monoGain: gain };
+    };
+
+    const start = () => {
+      if (isPlayingRef.current) return;
+      clearGraph();
+      try {
+        buildGraph();
+        isPlayingRef.current = true;
+      } catch (error) {
+        // AudioContext creation can fail on a locked-down browser.
+        clearGraph();
+        isPlayingRef.current = false;
+        console.error('Error starting audio:', error);
+      }
+    };
+
+    const stop = (closeContext = true) => {
+      clearGraph();
+      isPlayingRef.current = false;
+      if (closeContext) {
+        const ctx = ctxRef.current;
+        ctxRef.current = null;
+        if (ctx && ctx.state !== 'closed') {
+          ctx.close().catch(() => undefined);
+        }
+      }
+    };
 
     useImperativeHandle(ref, () => ({
-      play: () => {
-        if (isPlayingRef.current) return;
-
-        try {
-          audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-          const ctx = audioContextRef.current;
-
-          if (ctx.state === 'suspended') {
-            ctx.resume();
-          }
-
-          if (audioMode === 'binaural') {
-            // Create binaural beat setup
-            leftOscRef.current = ctx.createOscillator();
-            rightOscRef.current = ctx.createOscillator();
-            leftGainRef.current = ctx.createGain();
-            rightGainRef.current = ctx.createGain();
-
-            const leftPanner = ctx.createStereoPanner();
-            const rightPanner = ctx.createStereoPanner();
-
-            leftOscRef.current.frequency.value = baseFreq;
-            rightOscRef.current.frequency.value = baseFreq + deltaFreq;
-
-            leftGainRef.current.gain.value = leftEarEnabled ? 0.1 : 0;
-            rightGainRef.current.gain.value = rightEarEnabled ? 0.1 : 0;
-
-            leftPanner.pan.value = -1;
-            rightPanner.pan.value = 1;
-
-            leftOscRef.current.connect(leftGainRef.current);
-            leftGainRef.current.connect(leftPanner);
-            leftPanner.connect(ctx.destination);
-
-            rightOscRef.current.connect(rightGainRef.current);
-            rightGainRef.current.connect(rightPanner);
-            rightPanner.connect(ctx.destination);
-
-            leftOscRef.current.start();
-            rightOscRef.current.start();
-
-          } else if (audioMode === 'isochronic') {
-            // Create isochronic tone
-            isoOscRef.current = ctx.createOscillator();
-            isoGainRef.current = ctx.createGain();
-
-            isoOscRef.current.frequency.value = baseFreq;
-            isoGainRef.current.gain.value = 0;
-
-            isoOscRef.current.connect(isoGainRef.current);
-            isoGainRef.current.connect(ctx.destination);
-
-            // Create pulsing effect at delta frequency
-            const pulseFreq = deltaFreq;
-            let isOn = false;
-            const pulseInterval = 1000 / (pulseFreq * 2); // Half period for on/off
-
-            const pulse = () => {
-              if (!isPlayingRef.current) return;
-              
-              isOn = !isOn;
-              const targetGain = isOn && beatPatternEnabled ? 0.1 : 0;
-              
-              if (isoGainRef.current) {
-                isoGainRef.current.gain.setTargetAtTime(targetGain, ctx.currentTime, 0.01);
-              }
-              
-              setTimeout(pulse, pulseInterval);
-            };
-
-            isoOscRef.current.start();
-            pulse();
-
-          } else if (audioMode === 'mono') {
-            // Create mono neural tone
-            leftOscRef.current = ctx.createOscillator();
-            leftGainRef.current = ctx.createGain();
-
-            leftOscRef.current.frequency.value = deltaFreq;
-            leftGainRef.current.gain.value = (leftEarEnabled || rightEarEnabled) ? 0.1 : 0;
-
-            leftOscRef.current.connect(leftGainRef.current);
-            leftGainRef.current.connect(ctx.destination);
-
-            leftOscRef.current.start();
-          }
-
-          isPlayingRef.current = true;
-        } catch (error) {
-          console.error('Error starting audio:', error);
-        }
-      },
-
-      stop: () => {
+      play: start,
+      stop: () => stop(true),
+      updateFrequencies: () => {
         if (!isPlayingRef.current) return;
-
-        try {
-          if (leftOscRef.current) {
-            leftOscRef.current.stop();
-            leftOscRef.current = null;
-          }
-          if (rightOscRef.current) {
-            rightOscRef.current.stop();
-            rightOscRef.current = null;
-          }
-          if (isoOscRef.current) {
-            isoOscRef.current.stop();
-            isoOscRef.current = null;
-          }
-          if (audioContextRef.current) {
-            audioContextRef.current.close();
-            audioContextRef.current = null;
-          }
-        } catch (error) {
-          console.error('Error stopping audio:', error);
-        }
-
-        isPlayingRef.current = false;
+        clearGraph();
+        buildGraph();
       },
-
-      updateFrequencies: (newBaseFreq: number, newDeltaFreq: number) => {
-        if (isPlayingRef.current) {
-          if (audioMode === 'binaural' && leftOscRef.current && rightOscRef.current) {
-            leftOscRef.current.frequency.value = newBaseFreq;
-            rightOscRef.current.frequency.value = newBaseFreq + newDeltaFreq;
-          } else if (audioMode === 'isochronic' && isoOscRef.current) {
-            isoOscRef.current.frequency.value = newBaseFreq;
-          } else if (audioMode === 'mono' && leftOscRef.current) {
-            leftOscRef.current.frequency.value = newDeltaFreq;
-          }
-        }
-      }
     }));
 
-    // Update audio parameters when props change
-    React.useEffect(() => {
-      if (isPlayingRef.current) {
-        if (audioMode === 'binaural' && leftGainRef.current && rightGainRef.current) {
-          leftGainRef.current.gain.value = leftEarEnabled ? 0.1 : 0;
-          rightGainRef.current.gain.value = rightEarEnabled ? 0.1 : 0;
-        } else if (audioMode === 'mono' && leftGainRef.current) {
-          leftGainRef.current.gain.value = (leftEarEnabled || rightEarEnabled) ? 0.1 : 0;
-        }
+    // Mode, beat and ear changes rebuild the graph; frequency changes are
+    // applied directly so dragging a slider does not click or leak nodes.
+    const previous = useRef({ audioMode, beatPatternEnabled });
+    useEffect(() => {
+      if (!isPlayingRef.current) {
+        previous.current = { audioMode, beatPatternEnabled };
+        return;
       }
-    }, [leftEarEnabled, rightEarEnabled, beatPatternEnabled, audioMode]);
+      const modeChanged = previous.current.audioMode !== audioMode;
+      const beatChanged = previous.current.beatPatternEnabled !== beatPatternEnabled;
+      previous.current = { audioMode, beatPatternEnabled };
 
-    React.useEffect(() => {
-      if (isPlayingRef.current) {
-        if (audioMode === 'binaural' && leftOscRef.current && rightOscRef.current) {
-          leftOscRef.current.frequency.value = baseFreq;
-          rightOscRef.current.frequency.value = baseFreq + deltaFreq;
-        } else if (audioMode === 'isochronic' && isoOscRef.current) {
-          isoOscRef.current.frequency.value = baseFreq;
-        } else if (audioMode === 'mono' && leftOscRef.current) {
-          leftOscRef.current.frequency.value = deltaFreq;
-        }
+      if (modeChanged || beatChanged) {
+        clearGraph();
+        buildGraph();
+        return;
       }
-    }, [baseFreq, deltaFreq, audioMode]);
+
+      const ctx = ctxRef.current;
+      if (!ctx || ctx.state === 'closed') return;
+      const now = ctx.currentTime;
+
+      if (audioMode === 'binaural' && refs.current.left && refs.current.right) {
+        refs.current.left.frequency.setTargetAtTime(baseFreq, now, 0.03);
+        refs.current.right.frequency.setTargetAtTime(
+          baseFreq + (beatPatternEnabled ? deltaFreq : 0),
+          now,
+          0.03
+        );
+        refs.current.leftGain?.gain.setTargetAtTime(leftEarEnabled ? 0.1 : 0, now, 0.02);
+        refs.current.rightGain?.gain.setTargetAtTime(rightEarEnabled ? 0.1 : 0, now, 0.02);
+      } else if (audioMode === 'isochronic' && refs.current.carrier) {
+        refs.current.carrier.frequency.setTargetAtTime(baseFreq, now, 0.03);
+        refs.current.lfo?.frequency.setTargetAtTime(Math.max(0.1, deltaFreq), now, 0.03);
+      } else if (audioMode === 'mono' && refs.current.mono) {
+        refs.current.mono.frequency.setTargetAtTime(deltaFreq, now, 0.03);
+        refs.current.monoGain?.gain.setTargetAtTime(
+          leftEarEnabled || rightEarEnabled ? 0.1 : 0,
+          now,
+          0.02
+        );
+      }
+    }, [baseFreq, deltaFreq, audioMode, leftEarEnabled, rightEarEnabled, beatPatternEnabled]);
+
+    // Navigating away or unmounting must always silence the generator.
+    useEffect(() => {
+      return () => {
+        stop(true);
+      };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     return null;
   }

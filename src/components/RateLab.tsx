@@ -6,6 +6,9 @@ import OscilloscopeVisualization from './OscilloscopeVisualization';
 import NeuroPrimerCard from './NeuroPrimerCard';
 import SafetyProtocol from './SafetyProtocol';
 import FrequencyGuide from './FrequencyGuide';
+import PresetSaveButton from './PresetSaveButton';
+import { SessionShareButton, SessionSavedNote, useSessionRecorder, fmtDuration } from './SessionShare';
+import { consumePresetForLab } from '../lib/social';
 
 interface RateLabProps {
   onSessionUpdate: (data: any) => void;
@@ -26,6 +29,32 @@ const RateLab: React.FC<RateLabProps> = ({ onSessionUpdate }) => {
   
   const binauralRef = useRef<any>(null);
   const sessionTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [loadedPreset, setLoadedPreset] = useState('');
+  const [loadedPresetId, setLoadedPresetId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const pending = consumePresetForLab('rate');
+    if (!pending) return;
+    const config = pending.config || {};
+    if (typeof config.baseFreq === 'number') setBaseFreq(config.baseFreq);
+    if (typeof config.deltaFreq === 'number') setDeltaFreq(config.deltaFreq);
+    if (config.audioMode === 'binaural' || config.audioMode === 'isochronic' || config.audioMode === 'mono') {
+      setAudioMode(config.audioMode);
+    }
+    if (typeof config.leftEarEnabled === 'boolean') setLeftEarEnabled(config.leftEarEnabled);
+    if (typeof config.rightEarEnabled === 'boolean') setRightEarEnabled(config.rightEarEnabled);
+    if (typeof config.beatPatternEnabled === 'boolean') setBeatPatternEnabled(config.beatPatternEnabled);
+    if (typeof config.selectedPreset === 'string') setSelectedPreset(config.selectedPreset);
+    setLoadedPreset(pending.title);
+    setLoadedPresetId(pending.id);
+  }, []);
+
+  const lastSession = useSessionRecorder({
+    lab: 'rate',
+    playing: isPlaying,
+    details: { baseFreq, deltaFreq, audioMode, preset: selectedPreset },
+    presetId: loadedPresetId,
+  });
 
   const presets = [
     { name: 'Delta Sleep (1Hz)', base: 180, delta: 1, description: 'Deep sleep induction', benefits: 'Promotes deep sleep, healing, regeneration' },
@@ -216,6 +245,53 @@ const RateLab: React.FC<RateLabProps> = ({ onSessionUpdate }) => {
               <div className="text-sm text-gray-400">{currentState.description}</div>
               <div className="text-lg font-mono mt-2">{deltaFreq}Hz</div>
             </div>
+          </div>
+
+          {(loadedPreset || sessionTime > 0) && (
+            <div className="space-y-2">
+              {loadedPreset && (
+                <p className="text-xs text-cyan-300">Loaded preset: {loadedPreset}</p>
+              )}
+              {sessionTime > 0 && (
+                <p className="text-xs text-gray-400">
+                  Session {fmtDuration(sessionTime)} {isPlaying ? '· running' : '· stopped'}
+                </p>
+              )}
+              <SessionSavedNote last={lastSession} />
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-2">
+            <PresetSaveButton
+              lab="rate"
+              config={{
+                baseFreq,
+                deltaFreq,
+                audioMode,
+                leftEarEnabled,
+                rightEarEnabled,
+                beatPatternEnabled,
+                selectedPreset,
+              }}
+              defaultTitle={`${currentState.name} ${deltaFreq} Hz · ${baseFreq} Hz carrier`}
+            />
+            {(sessionTime >= 10 || lastSession) && (
+              <SessionShareButton
+                payload={{
+                  kind: 'session',
+                  badge: 'Rate Lab session',
+                  title: `${currentState.name} · ${deltaFreq} Hz`,
+                  subtitle: `${audioMode} mode · ${baseFreq} Hz carrier`,
+                  stats: [
+                    { label: 'Session', value: fmtDuration(lastSession?.seconds || sessionTime) },
+                    { label: 'Beat', value: `${deltaFreq} Hz` },
+                    { label: 'Carrier', value: `${baseFreq} Hz` },
+                    { label: 'Mode', value: audioMode },
+                  ],
+                  caption: `A ${fmtDuration(lastSession?.seconds || sessionTime)} Rate Lab session at ${deltaFreq} Hz.`,
+                }}
+              />
+            )}
           </div>
 
           {/* Audio Mode Selection */}
