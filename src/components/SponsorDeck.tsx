@@ -23,32 +23,49 @@ const packages = [
     name: 'Community Sponsor',
     price: 'From $100 / month',
     points: [
-      'Logo on the sponsor page',
-      'One newsletter mention',
-      'Support for one monthly community experiment',
-      'Monthly performance report with real numbers',
+      'Logo + link on the sponsor page',
+      'One newsletter mention to confirmed subscribers',
+      'Acknowledgement in a monthly build log',
+      'Monthly numbers report',
     ],
   },
   {
     name: 'Lab Sponsor',
     price: 'From $250 / month',
     points: [
-      '“Supported by” attribution inside one lab',
-      'Co-created preset collection, clearly labelled',
-      'Branded educational content, separated from findings',
-      'Launch announcement and analytics report',
+      'Everything in Community',
+      '“Supported by” line inside one lab',
+      'Co-created preset pack, clearly labelled',
+      'Educational write-up (accuracy review only)',
     ],
   },
   {
     name: 'Research / Education Partner',
     price: 'Project based',
     points: [
-      'Support for evidence summaries or open datasets',
-      'No control over results or conclusions',
-      'Public methodology and limitations',
-      'Sponsor kept separate from scientific claims',
+      'Evidence summary or open dataset support',
+      'Public acknowledgement in the write-up',
+      'Methodology and limitations published',
+      'No control over findings',
     ],
   },
+];
+
+const reporting = [
+  'Confirmed subscribers and emails delivered',
+  'Stories published, reviews approved, ideas submitted',
+  'Sponsor link clicks only if a counter exists — otherwise marked “not tracked”',
+  'No listening-session tracking, no ad pixels, no email list access',
+];
+
+const deliveryMatrix = [
+  { label: 'Logo + link on the sponsor page', c: true, l: true, r: true },
+  { label: 'One newsletter mention', c: true, l: true, r: false },
+  { label: 'Build-log acknowledgement', c: true, l: true, r: true },
+  { label: '“Supported by” line in one lab', c: false, l: true, r: false },
+  { label: 'Co-created preset pack', c: false, l: true, r: false },
+  { label: 'Educational write-up', c: false, l: true, r: true },
+  { label: 'Research-note acknowledgement', c: false, l: false, r: true },
 ];
 
 export default function SponsorDeck({ onBack }: { onBack?: () => void }) {
@@ -157,6 +174,57 @@ export default function SponsorDeck({ onBack }: { onBack?: () => void }) {
                 </ul>
               </div>
             ))}
+          </div>
+        </section>
+
+        <section className="mb-6">
+          <h2 className="text-lg font-bold mb-3">What you get, and when</h2>
+          <div className="grid sm:grid-cols-[1.4fr_1fr] gap-4">
+            <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-gray-50 text-gray-500 uppercase tracking-wide">
+                    <th className="text-left p-2 font-semibold">Deliverable</th>
+                    <th className="p-2 font-semibold">C</th>
+                    <th className="p-2 font-semibold">L</th>
+                    <th className="p-2 font-semibold">R</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {deliveryMatrix.map((row) => (
+                    <tr key={row.label} className="border-t border-gray-100">
+                      <td className="p-2 text-gray-700">{row.label}</td>
+                      {[row.c, row.l, row.r].map((ok, i) => (
+                        <td key={i} className="p-2 text-center text-purple-700 font-bold">
+                          {ok ? '✓' : '—'}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="p-2 text-[10px] text-gray-500 border-t border-gray-100">
+                C = Community $100+, L = Lab $250+, R = Research project-based.
+              </p>
+            </div>
+            <div className="border border-gray-200 rounded-lg p-3">
+              <h3 className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-2">Timeline</h3>
+              <ul className="text-xs text-gray-700 space-y-1.5">
+                <li><strong>Day 0:</strong> package, placement and logo confirmed.</li>
+                <li><strong>1–3 days:</strong> logo/link or attribution live; screenshot sent.</li>
+                <li><strong>First send:</strong> newsletter mention (Community/Lab).</li>
+                <li><strong>By the 5th monthly:</strong> numbers report.</li>
+                <li><strong>Day 30:</strong> renew or stop, no lock-in.</li>
+              </ul>
+            </div>
+          </div>
+          <div className="mt-3 border border-gray-200 rounded-lg p-3">
+            <h3 className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-2">Monthly report contains</h3>
+            <ul className="text-xs text-gray-700 grid sm:grid-cols-2 gap-1">
+              {reporting.map((line) => (
+                <li key={line} className="flex gap-1.5"><span className="text-purple-600">•</span> {line}</li>
+              ))}
+            </ul>
           </div>
         </section>
 

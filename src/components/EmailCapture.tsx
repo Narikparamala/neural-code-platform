@@ -24,7 +24,7 @@ export default function EmailCapture() {
 
     if (result.data) {
       setStatus('done');
-      setMessage('You are on the list. Watch your inbox for the next lab drop.');
+      setMessage(result.message || 'Check your inbox and click the confirmation link.');
       setEmail('');
     } else {
       setStatus(result.error === 'Please enter a valid email address.' ? 'invalid' : 'error');
@@ -41,8 +41,8 @@ export default function EmailCapture() {
           Get new labs by email
         </h2>
         <p className="text-gray-300 text-sm sm:text-base mb-6 max-w-xl mx-auto">
-          One short email when a new lab, preset pack or research note ships. No spam, unsubscribe
-          anytime.
+          One short email when a new lab, preset pack or research note ships. Confirm once, then
+          unsubscribe any time.
         </p>
 
         <form
@@ -79,7 +79,7 @@ export default function EmailCapture() {
             ) : (
               <Mail className="w-5 h-5" />
             )}
-            {busy ? 'Subscribing…' : status === 'done' ? 'Subscribed' : 'Subscribe'}
+            {busy ? 'Sending…' : status === 'done' ? 'Check inbox' : 'Subscribe'}
           </button>
         </form>
 

@@ -65,32 +65,74 @@ const SponsorshipPage: React.FC<{ onNavigate?: (lab: string) => void }> = ({ onN
       name: 'Community Sponsor',
       price: 'From $100 / month',
       points: [
-        'Logo on the sponsor page',
-        'One mention in the newsletter',
-        'Support for one monthly community experiment',
-        'Monthly performance report with real numbers'
+        'Logo + link on the sponsor page (live in 1–3 days)',
+        'One newsletter mention to confirmed subscribers',
+        'Acknowledgement in one monthly build log',
+        'Monthly numbers report — what we can actually measure'
       ]
     },
     {
       name: 'Lab Sponsor',
       price: 'From $250 / month',
       points: [
-        '“Supported by” attribution inside one lab',
-        'Co-created preset collection, clearly labelled',
-        'Branded educational content, separated from findings',
-        'Launch announcement and analytics report'
+        'Everything in Community',
+        '“Supported by” line inside one lab',
+        'Co-created preset pack, clearly labelled',
+        'Educational write-up, brand checked for factual accuracy only'
       ]
     },
     {
       name: 'Research / Education Partner',
       price: 'Project based',
       points: [
-        'Support for evidence summaries or open datasets',
-        'No control over results or conclusions',
-        'Public methodology and limitations',
-        'Sponsor kept separate from scientific claims'
+        'Support for an evidence summary or open dataset',
+        'Public acknowledgement in the finished write-up',
+        'Methodology and limitations published in full',
+        'No control over findings or conclusions'
       ]
     }
+  ];
+
+  const deliverables = [
+    { label: 'Logo + link on the sponsor page', community: true, lab: true, research: true },
+    { label: 'One newsletter mention to confirmed subscribers', community: true, lab: true, research: false },
+    { label: 'Acknowledgement in a monthly build log', community: true, lab: true, research: true },
+    { label: '“Supported by” line inside one lab', community: false, lab: true, research: false },
+    { label: 'Co-created preset pack, labelled as sponsored', community: false, lab: true, research: false },
+    { label: 'Educational write-up (brand reviews accuracy only)', community: false, lab: true, research: true },
+    { label: 'Public acknowledgement in research notes', community: false, lab: false, research: true },
+    { label: 'Monthly numbers report (real counts, no estimates)', community: true, lab: true, research: true },
+    { label: 'Renew or stop at day 30 — no lock-in', community: true, lab: true, research: true }
+  ];
+
+  const timeline = [
+    {
+      when: 'Day 0',
+      what: 'Payment or invoice is agreed, we confirm the exact placement, and you send a logo file plus the destination URL.'
+    },
+    {
+      when: '1–3 business days',
+      what: 'Your logo, link or “Supported by” line goes live. You get the live URL and a screenshot.'
+    },
+    {
+      when: 'First send after signup',
+      what: 'The newsletter mention goes out (Community and Lab). Only to people who confirmed by email.'
+    },
+    {
+      when: 'Monthly, by the 5th',
+      what: 'A one-page report with confirmed subscribers, emails sent, published stories, approved reviews and ideas. Nothing is estimated or invented.'
+    },
+    {
+      when: 'Day 30',
+      what: 'Renew, change package, or stop. No cancellation fee and no long contract.'
+    }
+  ];
+
+  const boundaries = [
+    'No control over findings, moderation or safety notes.',
+    'No access to the subscriber list or anyone’s email address.',
+    'No ads or sponsor audio inside an active listening session.',
+    'No health, medical or performance claims, and no implied endorsement.'
   ];
 
   const copyPayPalLink = () => {
@@ -239,6 +281,99 @@ const SponsorshipPage: React.FC<{ onNavigate?: (lab: string) => void }> = ({ onN
             Email instead
           </a>
         </div>
+      </motion.div>
+
+      {/* What sponsors get */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.52 }}
+        className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 sm:p-8 border border-gray-700"
+        id="sponsor-deliverables"
+      >
+        <h2 className="text-2xl font-bold mb-2 text-center">What sponsors actually get</h2>
+        <p className="text-center text-sm text-gray-400 mb-6 max-w-2xl mx-auto">
+          This is the complete inventory — what goes live, when, and how it is measured. No impression
+          inflation and no vanity metrics.
+        </p>
+
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px] text-sm">
+            <thead>
+              <tr className="border-b border-gray-600 text-left text-xs uppercase tracking-wider text-gray-400">
+                <th className="py-3 pr-4 font-semibold">Deliverable</th>
+                <th className="py-3 px-3 font-semibold text-center">Community<br /><span className="normal-case font-normal">$100+/mo</span></th>
+                <th className="py-3 px-3 font-semibold text-center">Lab<br /><span className="normal-case font-normal">$250+/mo</span></th>
+                <th className="py-3 pl-3 font-semibold text-center">Research<br /><span className="normal-case font-normal">project-based</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              {deliverables.map((row) => (
+                <tr key={row.label} className="border-b border-gray-700/60 last:border-0">
+                  <td className="py-3 pr-4 text-gray-200">{row.label}</td>
+                  {[row.community, row.lab, row.research].map((included, i) => (
+                    <td key={i} className="py-3 px-3 text-center">
+                      {included ? (
+                        <Check className="w-5 h-5 text-green-400 inline" aria-label="Included" />
+                      ) : (
+                        <span className="text-gray-600" aria-label="Not included">—</span>
+                      )}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <p className="text-xs text-gray-500 mt-3">
+          Packages are monthly unless marked project-based. One-time support is welcome and treated
+          with the same honesty, but placements need a monthly commitment to stay live.
+        </p>
+
+        <h3 className="text-lg font-semibold mt-8 mb-3">Fulfilment timeline</h3>
+        <ol className="space-y-3">
+          {timeline.map((step, i) => (
+            <li key={step.when} className="flex gap-3">
+              <span className="flex-shrink-0 w-7 h-7 rounded-full bg-purple-600/30 border border-purple-500/40 text-purple-200 text-xs font-bold flex items-center justify-center">
+                {i + 1}
+              </span>
+              <div>
+                <div className="text-sm font-semibold text-purple-200">{step.when}</div>
+                <p className="text-sm text-gray-300">{step.what}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+          <div className="bg-gray-900/40 rounded-lg p-5 border border-gray-700/70">
+            <h3 className="font-semibold mb-2">How the numbers are measured</h3>
+            <ul className="text-sm text-gray-300 space-y-2">
+              <li>• Confirmed subscribers and emails sent/failed: straight from the database and the sender log.</li>
+              <li>• Stories, approved reviews and ideas: counted from moderation tables.</li>
+              <li>• Link clicks: only if we add a click counter. We will say “not tracked” until then.</li>
+              <li>• Not tracked: individual listening sessions, personal data, ad impressions, or pixels.</li>
+            </ul>
+          </div>
+          <div className="bg-gray-900/40 rounded-lg p-5 border border-gray-700/70">
+            <h3 className="font-semibold mb-2">What sponsors never get</h3>
+            <ul className="text-sm text-gray-300 space-y-2">
+              {boundaries.map((item) => (
+                <li key={item} className="flex gap-2">
+                  <span className="text-red-400" aria-hidden="true">×</span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        <p className="text-xs text-gray-500 mt-5">
+          Reality check: this is an early-stage project. Numbers may be small. The report will show
+          that, because a sponsor who stays after seeing real numbers is worth more than one sold on
+          fiction.
+        </p>
       </motion.div>
 
       {/* Lead form */}

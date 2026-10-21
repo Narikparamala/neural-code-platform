@@ -37,7 +37,8 @@ Supabase project `cosmicspirit0` (`jdwiggwqsyeopcgrovjm`), tables:
 
 | Table | Public can | Admin can |
 |---|---|---|
-| `subscribers` | insert (newsletter) | read / delete / export |
+| `subscribers` | insert (legacy fallback) | read / delete / export |
+| `newsletter_sends` | nothing | read the send log |
 | `stories` | insert + read `published = true` | publish, unpublish, delete |
 | `reviews` | insert + read `approved = true` | approve, hide, delete |
 | `suggestions` | insert + read all | change status, delete |
@@ -56,6 +57,31 @@ without touching code. The **Sponsor leads** tab holds private enquiries with a 
 Sponsor enquiries are never published or added to the newsletter. Support buttons use preset
 `paypal.me` amounts and are labelled one-time; recurring invoices are arranged manually until a
 payment provider is connected.
+
+## Newsletter (double opt-in)
+
+The newsletter is driven by three Vercel Functions in `api/` and two server keys:
+
+1. `POST /api/subscribe` — validates the address, stores it as `pending`, and emails a
+   confirmation link. A repeat signup is throttled to one email a minute.
+2. `POST /api/confirm` — the visitor clicks **Confirm subscription** on the site; only then does
+   the row become `confirmed`. A bare GET never confirms, so inbox link scanners cannot opt
+   people in by accident.
+3. `POST /api/newsletter` — admin-only (verified Supabase JWT + owner email). Sends plain text as
+   branded HTML, adds a per-recipient unsubscribe link, logs the result in `newsletter_sends`, and
+   refuses to send above the daily provider cap.
+
+Email delivery supports two providers, selected by env vars:
+
+- **Brevo** — set `BREVO_API_KEY` plus `BREVO_SENDER_EMAIL`. Best deliverability; the free plan is
+  300 emails/day. Brevo blocks API-key creation until the account phone is verified.
+- **Google Apps Script relay** — set `EMAIL_WEBHOOK_URL` and `EMAIL_WEBHOOK_SECRET`. Free, sends as
+  the project Gmail account, about 100 emails/day. The relay code lives in the Apps Script project
+  and rejects any request without the shared secret. See `.env.example` for the full list.
+
+The admin **Newsletter** tab shows confirmed / pending / unsubscribed counts, the active provider,
+the per-send cap, a test send, and the recent send log. Only confirmed addresses are ever mailed.
+Every email includes a one-click unsubscribe link and the postal address in `POSTAL_ADDRESS`.
 
 ## Deploy
 

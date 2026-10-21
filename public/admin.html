@@ -113,6 +113,8 @@
   .badge.declined { background: #374151; color: #9ca3af; }
   .badge.pending { background: rgba(245,158,11,.18); color: #fbbf24; }
   .badge.live { background: rgba(34,197,94,.18); color: #86efac; }
+  .badge.confirmed { background: rgba(34,197,94,.18); color: #86efac; }
+  .badge.unsubscribed { background: #374151; color: #9ca3af; }
 
   .empty { text-align: center; color: var(--muted); padding: 34px 16px; border: 1px dashed #374151; border-radius: var(--radius); }
   .loading { color: var(--muted); padding: 20px 0; }
@@ -164,6 +166,7 @@
     <nav class="tabs" role="tablist" aria-label="Admin sections">
       <button class="tab" role="tab" data-tab="overview" aria-selected="true">Overview</button>
       <button class="tab" role="tab" data-tab="subscribers" aria-selected="false">Subscribers <span class="pill" id="pill-subs">0</span></button>
+      <button class="tab" role="tab" data-tab="newsletter" aria-selected="false">Newsletter <span class="pill" id="pill-news">0</span></button>
       <button class="tab" role="tab" data-tab="stories" aria-selected="false">Stories <span class="pill" id="pill-stories">0</span></button>
       <button class="tab" role="tab" data-tab="reviews" aria-selected="false">Reviews <span class="pill" id="pill-reviews">0</span></button>
       <button class="tab" role="tab" data-tab="suggestions" aria-selected="false">Suggestions <span class="pill" id="pill-suggestions">0</span></button>
@@ -190,10 +193,35 @@
     <section class="panel" id="tab-subscribers" hidden>
       <div class="toolbar">
         <input class="grow" id="sub-search" type="search" placeholder="Search email…" aria-label="Search subscribers" />
+        <select id="sub-filter" aria-label="Filter by status">
+          <option value="all">All statuses</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="pending">Pending confirmation</option>
+          <option value="unsubscribed">Unsubscribed</option>
+        </select>
         <button class="btn" id="sub-export">Export CSV</button>
         <button class="btn" id="sub-refresh">Refresh</button>
       </div>
       <div id="sub-list"></div>
+    </section>
+
+    <section class="panel" id="tab-newsletter" hidden>
+      <h2 class="sec" style="margin-top:0">Newsletter</h2>
+      <p class="hint">Sends only to confirmed addresses. Every email includes a one-click unsubscribe link and the project postal address.</p>
+      <div class="grid" id="nl-stats" style="margin-top:14px"></div>
+      <form id="nl-form" class="card" style="margin-top:16px;max-width:820px">
+        <label for="nl-subject">Subject</label>
+        <input id="nl-subject" type="text" maxlength="140" placeholder="New lab: a 3-minute spatial audio session" />
+        <label for="nl-body">Message (plain text — a blank line starts a new paragraph)</label>
+        <textarea id="nl-body" rows="10" maxlength="20000" placeholder="What shipped, why it matters, and one link. Keep it short."></textarea>
+        <div class="toolbar" style="margin-bottom:0">
+          <button class="btn primary" type="submit" id="nl-send">Send to confirmed</button>
+          <button class="btn" type="button" id="nl-test">Send test to me</button>
+          <span class="hint" id="nl-note"></span>
+        </div>
+      </form>
+      <h2 class="sec">Recent sends</h2>
+      <div id="nl-log"></div>
     </section>
 
     <section class="panel" id="tab-stories" hidden>
@@ -302,7 +330,9 @@
     reviews: [],
     suggestions: [],
     leads: [],
+    sends: [],
     settings: null,
+    newsletter: { configured: false, provider: null, cap: 0, counts: { confirmed: 0, pending: 0, unsubscribed: 0 } },
     tab: "overview"
   };
 
@@ -418,11 +448,12 @@
     Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (btn) {
       btn.setAttribute("aria-selected", btn.dataset.tab === name ? "true" : "false");
     });
-    ["overview", "subscribers", "stories", "reviews", "suggestions", "leads", "settings"].forEach(function (t) {
+    ["overview", "subscribers", "newsletter", "stories", "reviews", "suggestions", "leads", "settings"].forEach(function (t) {
       $("tab-" + t).hidden = t !== name;
     });
     if (name === "overview") renderOverview();
     if (name === "subscribers") renderSubscribers();
+    if (name === "newsletter") { renderNewsletter(); loadNewsletterMeta(); }
     if (name === "stories") renderStories();
     if (name === "reviews") renderReviews();
     if (name === "suggestions") renderSuggestions();
@@ -437,7 +468,8 @@
   /* ---------------- data ---------------- */
 
   async function loadAll() {
-    await Promise.all([loadSubscribers(), loadStories(), loadReviews(), loadSuggestions(), loadLeads(), loadSettings()]);
+    await Promise.all([loadSubscribers(), loadStories(), loadReviews(), loadSuggestions(), loadLeads(), loadSettings(), loadSends()]);
+    loadNewsletterMeta();
     renderOverview();
     if (state.tab !== "overview") setTab(state.tab);
   }
@@ -536,10 +568,11 @@
   }
 
   async function loadSubscribers() {
-    var res = await db.from("subscribers").select("id,email,source,created_at").order("created_at", { ascending: false });
+    var res = await db.from("subscribers").select("id,email,source,status,confirmed_at,created_at,last_sent_at").order("created_at", { ascending: false });
     state.subscribers = res.error ? [] : res.data || [];
     if (res.error) toast("Subscribers: " + errorText(res.error), "bad");
     $("pill-subs").textContent = state.subscribers.length;
+    $("pill-news").textContent = state.subscribers.filter(function (s) { return s.status === "confirmed"; }).length;
   }
 
   async function loadStories() {
@@ -575,12 +608,15 @@
     var newIdeas = state.suggestions.filter(function (s) { return s.status === "new"; }).length;
     var newLeads = state.leads.filter(function (l) { return l.status === "new"; }).length;
     var approvedReviews = state.reviews.filter(function (r) { return r.approved; });
+    var confirmedSubs = state.subscribers.filter(function (s) { return s.status === "confirmed"; }).length;
+    var pendingSubs = state.subscribers.filter(function (s) { return (s.status || "pending") === "pending"; }).length;
     var avg = approvedReviews.length
       ? (approvedReviews.reduce(function (a, r) { return a + r.rating; }, 0) / approvedReviews.length).toFixed(1)
       : "—";
 
     $("stats").innerHTML =
-      statCard(state.subscribers.length, "Newsletter subscribers", "good") +
+      statCard(confirmedSubs, "Confirmed subscribers", "good") +
+      statCard(pendingSubs, "Awaiting confirmation", pendingSubs ? "warn" : "") +
       statCard(pendingStories, "Stories waiting", pendingStories ? "warn" : "") +
       statCard(pendingReviews, "Reviews waiting", pendingReviews ? "warn" : "") +
       statCard(newIdeas, "New suggestions", newIdeas ? "warn" : "") +
@@ -600,9 +636,10 @@
 
     var latest = state.subscribers.slice(0, 5);
     $("latest-subs").innerHTML = latest.length
-      ? '<table><thead><tr><th>Email</th><th>Source</th><th>Joined</th></tr></thead><tbody>' +
+      ? '<table><thead><tr><th>Email</th><th>Status</th><th>Source</th><th>Joined</th></tr></thead><tbody>' +
         latest.map(function (s) {
-          return "<tr><td>" + esc(s.email) + "</td><td class=\"muted\">" + esc(s.source || "site") + "</td><td class=\"nowrap muted\">" + esc(fmtDate(s.created_at)) + "</td></tr>";
+          var status = s.status || "pending";
+          return "<tr><td>" + esc(s.email) + "</td><td><span class=\"badge " + esc(status) + "\">" + esc(status) + "</span></td><td class=\"muted\">" + esc(s.source || "site") + "</td><td class=\"nowrap muted\">" + esc(fmtDate(s.created_at)) + "</td></tr>";
         }).join("") + "</tbody></table>"
       : '<div class="empty">No signups yet. Share the newsletter link to get the first one.</div>';
   }
@@ -611,15 +648,20 @@
 
   function renderSubscribers() {
     var q = ($("sub-search").value || "").toLowerCase().trim();
-    var rows = state.subscribers.filter(function (s) { return !q || s.email.toLowerCase().indexOf(q) >= 0; });
+    var filter = $("sub-filter").value;
+    var rows = state.subscribers.filter(function (s) {
+      if (filter !== "all" && (s.status || "pending") !== filter) return false;
+      return !q || s.email.toLowerCase().indexOf(q) >= 0;
+    });
 
     $("sub-list").innerHTML = rows.length
-      ? '<div class="table-wrap"><table><thead><tr><th>Email</th><th>Source</th><th>Joined</th><th></th></tr></thead><tbody>' +
+      ? '<div class="table-wrap"><table><thead><tr><th>Email</th><th>Status</th><th>Source</th><th>Joined</th><th></th></tr></thead><tbody>' +
         rows.map(function (s) {
-          return "<tr><td>" + esc(s.email) + "</td><td class=\"muted\">" + esc(s.source || "site") + "</td><td class=\"nowrap muted\">" + esc(fmtDate(s.created_at)) +
+          var status = s.status || "pending";
+          return "<tr><td>" + esc(s.email) + "</td><td><span class=\"badge " + esc(status) + "\">" + esc(status) + "</span></td><td class=\"muted\">" + esc(s.source || "site") + "</td><td class=\"nowrap muted\">" + esc(fmtDate(s.created_at)) +
             "</td><td class=\"actions\"><button class=\"btn small danger\" data-del-sub=\"" + esc(s.id) + "\">Delete</button></td></tr>";
         }).join("") + "</tbody></table></div>"
-      : '<div class="empty">' + (q ? "No subscriber matches that search." : "No subscribers yet.") + "</div>";
+      : '<div class="empty">' + (q || filter !== "all" ? "No subscriber matches that filter." : "No subscribers yet.") + "</div>";
 
     Array.prototype.forEach.call($("sub-list").querySelectorAll("[data-del-sub]"), function (b) {
       b.addEventListener("click", async function () {
@@ -634,12 +676,13 @@
   }
 
   $("sub-search").addEventListener("input", renderSubscribers);
+  $("sub-filter").addEventListener("change", renderSubscribers);
   $("sub-refresh").addEventListener("click", async function () { await loadSubscribers(); renderSubscribers(); toast("Refreshed", "ok"); });
 
   $("sub-export").addEventListener("click", function () {
     if (!state.subscribers.length) return toast("No subscribers to export", "bad");
-    var rows = [["email", "source", "created_at"]].concat(state.subscribers.map(function (s) {
-      return [s.email, s.source || "site", s.created_at];
+    var rows = [["email", "status", "source", "confirmed_at", "created_at"]].concat(state.subscribers.map(function (s) {
+      return [s.email, s.status || "pending", s.source || "site", s.confirmed_at || "", s.created_at];
     }));
     var csv = rows.map(function (r) {
       return r.map(function (c) { return '"' + String(c == null ? "" : c).replace(/"/g, '""') + '"'; }).join(",");
@@ -653,6 +696,114 @@
     a.remove();
     setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
   });
+
+  /* ---------------- newsletter ---------------- */
+
+  async function loadSends() {
+    var res = await db.from("newsletter_sends").select("*").order("created_at", { ascending: false }).limit(12);
+    state.sends = res.error ? [] : res.data || [];
+  }
+
+  async function loadNewsletterMeta() {
+    try {
+      var sess = await db.auth.getSession();
+      var token = sess.data && sess.data.session ? sess.data.session.access_token : "";
+      if (!token) return;
+      var res = await fetch("/api/newsletter", { headers: { Authorization: "Bearer " + token } });
+      var payload = await res.json().catch(function () { return null; });
+      if (res.ok && payload && payload.ok) {
+        state.newsletter = payload;
+        renderNewsletter();
+      }
+    } catch (e) {
+      /* older static mirrors do not have the API */
+    }
+  }
+
+  function providerLabel() {
+    if (!state.newsletter.configured) return "Not connected";
+    if (state.newsletter.provider === "brevo") return "Brevo API";
+    if (state.newsletter.provider === "apps-script") return "Google Apps Script (Gmail)";
+    return state.newsletter.provider || "Connected";
+  }
+
+  function renderNewsletter() {
+    var counts = state.newsletter.counts || { confirmed: 0, pending: 0, unsubscribed: 0 };
+    var confirmed = counts.confirmed || 0;
+    var pending = counts.pending || 0;
+    var unsub = counts.unsubscribed || 0;
+
+    $("nl-stats").innerHTML =
+      statCard(confirmed, "Confirmed recipients", confirmed ? "good" : "") +
+      statCard(pending, "Waiting to confirm", pending ? "warn" : "") +
+      statCard(unsub, "Unsubscribed", "") +
+      statCard(providerLabel(), "Sender", state.newsletter.configured ? "good" : "warn");
+
+    var note = $("nl-note");
+    if (!state.newsletter.configured) {
+      note.textContent = "No sender connected. Add BREVO_API_KEY or EMAIL_WEBHOOK_URL in Vercel, then redeploy.";
+    } else {
+      note.textContent = "Limit for one send: " + (state.newsletter.cap || 0) + " emails. Provider: " + providerLabel() + ".";
+    }
+
+    $("nl-send").disabled = !state.newsletter.configured || confirmed === 0;
+    $("nl-test").disabled = !state.newsletter.configured;
+
+    $("nl-log").innerHTML = state.sends.length
+      ? '<div class="table-wrap"><table><thead><tr><th>Subject</th><th>Sent</th><th>Failed</th><th>Type</th><th>When</th></tr></thead><tbody>' +
+        state.sends.map(function (s) {
+          return "<tr><td class=\"msg\">" + esc(s.subject) + "</td><td>" + esc(s.sent) + " / " + esc(s.recipients) + "</td><td class=\"" + (s.failed ? "muted" : "") + "\">" + esc(s.failed) + "</td><td>" + (s.test ? '<span class="badge pending">Test</span>' : '<span class="badge live">Live</span>') + "</td><td class=\"nowrap muted\">" + esc(fmtDate(s.created_at)) + "</td></tr>";
+        }).join("") + "</tbody></table></div>"
+      : '<div class="empty">No newsletter has been sent yet.</div>';
+  }
+
+  async function sendNewsletter(test) {
+    var subject = $("nl-subject").value.trim();
+    var message = $("nl-body").value.trim();
+    if (subject.length < 3) return toast("Add a subject of at least 3 characters.", "bad");
+    if (message.length < 10) return toast("Add a message of at least 10 characters.", "bad");
+    if (!test && !confirm("Send this email to all confirmed subscribers?")) return;
+
+    var sess = await db.auth.getSession();
+    var token = sess.data && sess.data.session ? sess.data.session.access_token : "";
+    if (!token) return toast("Your session expired. Sign in again.", "bad");
+
+    var buttons = [$("nl-send"), $("nl-test")];
+    buttons.forEach(function (b) { b.disabled = true; });
+    var label = $("nl-note").textContent;
+    $("nl-note").textContent = test ? "Sending test…" : "Sending to confirmed subscribers…";
+
+    try {
+      var res = await fetch("/api/newsletter", {
+        method: "POST",
+        headers: { "content-type": "application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify({ subject: subject, message: message, test: !!test })
+      });
+      var payload = await res.json().catch(function () { return null; });
+      if (!res.ok || !payload) {
+        toast((payload && payload.error) || "Send failed. Check the Vercel logs.", "bad");
+      } else if (payload.failed) {
+        toast(payload.message || ("Sent " + payload.sent + ", failed " + payload.failed + "."), "bad");
+      } else {
+        toast(payload.message || "Newsletter sent.", "ok");
+        $("nl-subject").value = "";
+        $("nl-body").value = "";
+      }
+    } catch (e) {
+      toast("Network error while sending.", "bad");
+    }
+
+    $("nl-note").textContent = label;
+    await loadSends();
+    await loadNewsletterMeta();
+    renderNewsletter();
+  }
+
+  $("nl-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    sendNewsletter(false);
+  });
+  $("nl-test").addEventListener("click", function () { sendNewsletter(true); });
 
   /* ---------------- stories ---------------- */
 

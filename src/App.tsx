@@ -19,6 +19,7 @@ import SponsorDeck from './components/SponsorDeck';
 import ErrorBoundary from './components/ErrorBoundary';
 import Footer from './components/Footer';
 import EmailCapture from './components/EmailCapture';
+import NewsletterNotice from './components/NewsletterNotice';
 import NotFound from './components/NotFound';
 
 type ActiveLab =
@@ -133,6 +134,7 @@ function App() {
 
       {/* Main Content */}
       <main className="relative z-10 pt-24 px-4 pb-8 lg:px-6 lg:pt-28 lg:pb-10">
+        <NewsletterNotice />
         <AnimatePresence mode="wait">
           <motion.div
             key={activeLab}

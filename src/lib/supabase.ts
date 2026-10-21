@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { apiPost } from './api';
 
 /**
  * Public Supabase config.
@@ -61,18 +62,30 @@ function friendly(error: { code?: string; message?: string } | null): string {
   return error.message || 'Something went wrong. Please try again.';
 }
 
-/** Add an email to the newsletter list. A repeat signup counts as success. */
-export async function subscribeEmail(email: string, source = 'site'): Promise<Result<true>> {
+/** Add an email to the newsletter list. Double opt-in: the API sends a confirmation link. */
+export async function subscribeEmail(
+  email: string,
+  source = 'site'
+): Promise<Result<true> & { message?: string; pending?: boolean }> {
   const clean = email.trim().toLowerCase();
   if (!emailPattern.test(clean)) {
     return { data: null, error: 'Please enter a valid email address.' };
   }
 
-  const { error } = await supabase.from('subscribers').insert({ email: clean, source });
-  if (error && error.code !== '23505') {
-    return { data: null, error: friendly(error) };
+  const result = await apiPost<{ message?: string; pending?: boolean; already?: boolean }>(
+    '/api/subscribe',
+    { email: clean, source }
+  );
+
+  if (!result.data) {
+    return { data: null, error: result.error };
   }
-  return { data: true, error: null };
+  return {
+    data: true,
+    error: null,
+    message: result.data.message,
+    pending: result.data.pending,
+  };
 }
 
 export async function fetchStories(limit = 30): Promise<Result<Story[]>> {
