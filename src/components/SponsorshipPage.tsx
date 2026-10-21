@@ -6,6 +6,13 @@ import SponsorLeadForm from './SponsorLeadForm';
 
 const SponsorshipPage: React.FC<{ onNavigate?: (lab: string) => void }> = ({ onNavigate }) => {
   const settings = useSiteSettings();
+
+  // paypal.me supports preset one-time amounts: paypal.me/<user>/<amount>USD
+  const supportHref = (usd?: number) => {
+    const base = (settings.support_url || '').replace(/\/$/, '');
+    if (usd && base.includes('paypal.me')) return `${base}/${usd}USD`;
+    return base;
+  };
   const supportLabel = settings.support_url.replace(/^https?:\/\//, '').replace(/\/$/, '');
   const [copiedPayPal, setCopiedPayPal] = useState(false);
 
@@ -168,12 +175,12 @@ const SponsorshipPage: React.FC<{ onNavigate?: (lab: string) => void }> = ({ onN
                 ))}
               </ul>
               <a
-                href={settings.support_url}
+                href={supportHref(tier.usd)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="mt-5 inline-flex items-center justify-center gap-2 w-full min-h-[44px] rounded-lg bg-purple-600 hover:bg-purple-700 font-semibold text-sm"
               >
-                <Heart className="w-4 h-4" aria-hidden="true" /> Support ${tier.usd}
+                <Heart className="w-4 h-4" aria-hidden="true" /> Give ${tier.usd} (one-time)
               </a>
             </motion.div>
           ))}
@@ -212,6 +219,10 @@ const SponsorshipPage: React.FC<{ onNavigate?: (lab: string) => void }> = ({ onN
             </div>
           ))}
         </div>
+        <p className="text-xs text-gray-500 text-center mt-4 max-w-2xl mx-auto">
+          Tiers are monthly targets. Buttons send a one-time amount today; if you want a recurring
+          invoice, use the form below or email and we will set it up manually.
+        </p>
         <div className="text-center mt-6 flex flex-wrap justify-center gap-3">
           <button
             type="button"

@@ -16,8 +16,11 @@ No install, no account, no paywall.
 | **Game Lab** | 60-second attention training — hit the active neural cluster, build a streak, beat your best |
 | **Frequency Lab** | Multi-method entrainment, custom presets, layered background noise, session timer |
 | **Feedback** | Star reviews (moderated) and a public suggestions board |
-| **Connect** | Community stories, Instagram, Telegram and YouTube |
-| **Sponsor** | UPI/PhonePe QR and PayPal |
+| **Connect** | Community stories, Instagram, Telegram, YouTube and TikTok |
+| **About** | Vision, mission, goals, principles and roadmap |
+| **Research & evidence** | Monroe / Hemi-Sync, Silva Method, the 1983 Army “Gateway Process” document, with sources |
+| **Transparency** | Live counts, safety, privacy, moderation and funding |
+| **Sponsor** | Support tiers, sponsor packages, lead form and a printable one-page deck |
 
 ## Tech
 
@@ -39,6 +42,7 @@ Supabase project `cosmicspirit0` (`jdwiggwqsyeopcgrovjm`), tables:
 | `reviews` | insert + read `approved = true` | approve, hide, delete |
 | `suggestions` | insert + read all | change status, delete |
 | `site_settings` | read the single row | update logo + social links |
+| `sponsor_leads` | insert (sponsor form) | read / status / delete / CSV export |
 
 Row Level Security allows anonymous inserts only; reads are limited to approved/published rows.
 Admin policies match the owner's email in the JWT, so a normal signup can never read submissions.
@@ -46,7 +50,12 @@ Admin policies match the owner's email in the JWT, so a normal signup can never 
 
 Admin console: **/admin.html** (email + password, same as the Supabase Auth user). The
 **Site settings** tab edits the logo and the Instagram, Telegram, YouTube, TikTok and support URLs
-without touching code.
+without touching code. The **Sponsor leads** tab holds private enquiries with a status
+(new / contacted / won / closed) and CSV export.
+
+Sponsor enquiries are never published or added to the newsletter. Support buttons use preset
+`paypal.me` amounts and are labelled one-time; recurring invoices are arranged manually until a
+payment provider is connected.
 
 ## Deploy
 
