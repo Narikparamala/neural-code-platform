@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Share2, Sparkles } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { recordSession } from '../lib/social';

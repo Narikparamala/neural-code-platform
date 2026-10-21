@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Download, Share2, X, Copy, Check } from 'lucide-react';
 
 export type SharePayload = {

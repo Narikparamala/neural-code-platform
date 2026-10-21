@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Globe, Info, Play, Pause, RotateCcw, Brain, Headphones, Volume2, VolumeX, Download, HelpCircle } from 'lucide-react';
+import { Play, Pause, RotateCcw, Brain, Headphones, Volume2, VolumeX, Download, HelpCircle } from 'lucide-react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Sphere, Text } from '@react-three/drei';
 import * as THREE from 'three';
@@ -34,8 +34,6 @@ interface AIAnalysis {
 
 // Simple AI Analysis Engine (Client-side only)
 class SpatialAudioAI {
-  private sessionData: any[] = [];
-  
   analyzeSession(sources: SoundSource[], userInteractions: any[]): AIAnalysis {
     // Spatial accuracy calculation
     const spatialAccuracy = this.calculateSpatialAccuracy(sources, userInteractions);
@@ -170,7 +168,7 @@ class SpatialAudioAI {
 }
 
 // 3D Brain Model Component
-function BrainModel({ sources, onSourceMove }: { sources: SoundSource[], onSourceMove: (id: string, position: [number, number, number]) => void }) {
+function BrainModel({ sources }: { sources: SoundSource[] }) {
   const brainRef = useRef<THREE.Mesh>(null);
   
   useFrame((state) => {
@@ -725,14 +723,7 @@ const PlaceLab: React.FC<PlaceLabProps> = ({ onSessionUpdate }) => {
                 </div>
               }
             >
-              <BrainModel 
-                sources={soundSources} 
-                onSourceMove={(id, position) => {
-                  setSoundSources(prev => prev.map(s => 
-                    s.id === id ? { ...s, position } : s
-                  ));
-                }}
-              />
+              <BrainModel sources={soundSources} />
               <OrbitControls enablePan={true} enableZoom={true} enableRotate={true} />
             </Canvas>
           </div>

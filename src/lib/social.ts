@@ -331,6 +331,12 @@ export async function leaveCircle(circleId: string, userId: string): Promise<Res
   return { data: true, error: null };
 }
 
+export async function deleteCircle(circleId: string): Promise<Result<true>> {
+  const { error } = await supabase.from('circles').delete().eq('id', circleId);
+  if (error) return { data: null, error: fail(error) };
+  return { data: true, error: null };
+}
+
 export async function fetchCircleMembers(circleId: string): Promise<Result<CircleMember[]>> {
   const { data, error } = await supabase
     .from('circle_members')

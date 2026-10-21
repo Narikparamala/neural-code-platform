@@ -18,6 +18,7 @@ import { useAuth, initials } from '../lib/auth';
 import {
   LAB_LABEL,
   createCircle,
+  deleteCircle,
   fetchCircleMembers,
   fetchCircleMessages,
   fetchCircles,
@@ -195,11 +196,29 @@ export default function CirclesPanel({ onUsePreset }: { onUsePreset: (preset: Pr
   const leave = async () => {
     if (!user || !selected) return;
     if (selected.owner_id === user.id) {
-      setError('You own this circle. Transfer or delete it from the database first.');
+      setError('You own this circle. Delete it if you no longer need it.');
       return;
     }
     if (!window.confirm(`Leave ${selected.name}?`)) return;
     const result = await leaveCircle(selected.id, user.id);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    setSelectedId(null);
+    await loadCircles();
+  };
+
+  const remove = async () => {
+    if (!user || !selected || selected.owner_id !== user.id) return;
+    if (
+      !window.confirm(
+        `Delete ${selected.name}? Its messages and memberships are removed for everyone. This cannot be undone.`
+      )
+    ) {
+      return;
+    }
+    const result = await deleteCircle(selected.id);
     if (result.error) {
       setError(result.error);
       return;
@@ -283,13 +302,23 @@ export default function CirclesPanel({ onUsePreset }: { onUsePreset: (preset: Pr
               })}
             </ul>
 
-            <button
-              type="button"
-              onClick={leave}
-              className="mt-4 inline-flex items-center gap-2 text-xs text-red-300 hover:text-red-200 min-h-[36px]"
-            >
-              <LogOut className="w-3.5 h-3.5" /> Leave circle
-            </button>
+            {selected.owner_id === user?.id ? (
+              <button
+                type="button"
+                onClick={remove}
+                className="mt-4 inline-flex items-center gap-2 text-xs text-red-300 hover:text-red-200 min-h-[36px]"
+              >
+                <LogOut className="w-3.5 h-3.5" /> Delete circle
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={leave}
+                className="mt-4 inline-flex items-center gap-2 text-xs text-red-300 hover:text-red-200 min-h-[36px]"
+              >
+                <LogOut className="w-3.5 h-3.5" /> Leave circle
+              </button>
+            )}
           </aside>
 
           <section className="lg:col-span-3 rounded-xl border border-gray-700 bg-gray-800/40 flex flex-col h-[62vh] min-h-[420px]">

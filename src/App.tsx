@@ -1,6 +1,6 @@
-import React, { Suspense, lazy, useState, useEffect } from 'react';
+import { Suspense, lazy, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, Waves, Globe, Users, Archive, Settings, Shield, Menu, X, Zap, Heart, ExternalLink } from 'lucide-react';
+import { Waves, Globe, Users, Archive, Shield, Zap } from 'lucide-react';
 import RateLab from './components/RateLab';
 const PlaceLab = lazy(() => import('./components/PlaceLab'));
 import PopulationLab from './components/PopulationLab';

@@ -1,9 +1,8 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Play, Pause, RotateCcw, Save, Download, Upload, Settings, 
-  Volume2, VolumeX, Info, HelpCircle, Zap, Waves, Music,
-  Timer, TrendingUp, Eye, EyeOff, Sliders
+  Play, Pause, RotateCcw, Download, Upload, Settings, 
+  Volume2, VolumeX, HelpCircle, TrendingUp, Eye
 } from 'lucide-react';
 import PresetSaveButton from './PresetSaveButton';
 import { SessionShareButton, SessionSavedNote, useSessionRecorder, fmtDuration } from './SessionShare';
@@ -48,7 +47,6 @@ class AdvancedAudioEngine {
   private masterGain: GainNode | null = null;
   private oscillators: Map<string, OscillatorNode> = new Map();
   private gainNodes: Map<string, GainNode> = new Map();
-  private panners: Map<string, StereoPannerNode> = new Map();
   private noiseBuffers: Map<string, AudioBuffer> = new Map();
   private noiseNodes: Map<string, AudioBufferSourceNode> = new Map();
   private analyser: AnalyserNode | null = null;
@@ -864,7 +862,7 @@ const FrequencyLab: React.FC<FrequencyLabProps> = ({ onSessionUpdate }) => {
 
           {/* Audio Config List */}
           <div className="space-y-4 max-h-96 overflow-y-auto">
-            {currentConfig.audioConfigs.map((config, index) => (
+            {currentConfig.audioConfigs.map((config) => (
               <motion.div
                 key={config.id}
                 initial={{ opacity: 0, y: 10 }}
