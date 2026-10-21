@@ -157,7 +157,7 @@ function App() {
 
       {/* Enhanced Control Buttons - Only show for non-social pages */}
       {!['connect', 'sponsor'].includes(activeLab) && (
-        <div className="fixed bottom-4 right-4 flex flex-col gap-2 z-40">
+        <div className="no-print fixed bottom-4 right-4 flex flex-col gap-2 z-40">
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -193,34 +193,34 @@ function HomePortal({
     {
       id: 'rate' as ActiveLab,
       title: 'Rate Lab',
-      description: 'Neural firing frequency simulator with binaural beats and isochronic tones',
+      description: 'Binaural beats, isochronic and monaural tones with a live oscilloscope',
       icon: Waves,
       color: 'from-blue-500 to-cyan-500',
-      features: ['Binaural Beats', 'Isochronic Tones', 'Live Oscilloscope', 'Mono Neural Tones']
+      features: ['Binaural Beats', 'Isochronic Tones', 'Live Oscilloscope', 'Monaural Tones']
     },
     {
       id: 'place' as ActiveLab,
       title: 'Place Lab',
-      description: '3D spatial audio with HRTF brain model and cochlear simulation',
+      description: 'Pan generated sounds around a 3D space with HRTF processing and a movable source map',
       icon: Globe,
       color: 'from-green-500 to-emerald-500',
-      features: ['3D Audio', 'HRTF Processing', 'Spatial Mapping', 'Brain Visualization']
+      features: ['3D Audio', 'HRTF Panning', 'Source Map', 'Headphone Demo']
     },
     {
       id: 'population' as ActiveLab,
       title: 'Game Lab',
-      description: 'Interactive neural training games with attention and cognitive challenges',
+      description: 'A 60-second attention game: hit the active target, build a streak, beat your best',
       icon: Users,
       color: 'from-purple-500 to-pink-500',
-      features: ['Attention Training', 'Neural Games', 'Cognitive Challenges', 'Brain Training']
+      features: ['60-second Round', 'Streak Tracking', 'Best Score', 'Keyboard + Touch']
     },
     {
       id: 'frequency' as ActiveLab,
-      title: 'Advanced Frequency Laboratory',
-      description: 'Advanced multi-method brainwave entrainment with real-time monitoring',
+      title: 'Frequency Lab',
+      description: 'Layer multiple tone methods, save presets and set a session timer',
       icon: Zap,
       color: 'from-cyan-500 to-blue-500',
-      features: ['Multi-Method', 'Real-time Monitor', 'Custom Configs', 'Background Sounds']
+      features: ['Multiple Methods', 'Session Timer', 'Custom Presets', 'Background Noise']
     }
   ];
 
@@ -326,8 +326,8 @@ function HomePortal({
         <div className="flex flex-wrap justify-center gap-4 text-xs text-gray-500">
           <span>• Real-time audio synthesis</span>
           <span>• 3D spatial audio processing</span>
-          <span>• Evidence labels on every lab</span>
-          <span>• Safety notes on every session</span>
+          <span>• Plain-language research notes</span>
+          <span>• Safety notes and a moderation policy</span>
         </div>
       </motion.div>
     </div>

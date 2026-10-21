@@ -132,14 +132,27 @@ const AboutPage: React.FC<Props> = ({ onNavigate }) => {
       <section className="rounded-xl border border-gray-700 bg-gray-800/50 p-6 mb-10">
         <h2 className="text-xl font-bold mb-2">Roadmap</h2>
         <ul className="grid sm:grid-cols-2 gap-3 text-sm text-gray-300">
-          <li>✅ Guided 3-minute Daily Signal sessions</li>
-          <li>✅ Real transparency numbers</li>
-          <li>✅ Moderated reviews, stories and ideas</li>
-          <li>🔜 Share cards after a session</li>
-          <li>🔜 Evidence labels inside every lab</li>
-          <li>🔜 Listening-consistency history (no account needed)</li>
-          <li>🔜 Sponsor deck and monthly community experiment</li>
-          <li>🔜 More research notes with primary sources</li>
+          {[
+            ['Done', 'Guided 3-minute Daily Signal sessions'],
+            ['Done', 'Real transparency numbers'],
+            ['Done', 'Moderated reviews, stories and ideas'],
+            ['Next', 'Share cards after a session'],
+            ['Next', 'Evidence labels inside every lab'],
+            ['Next', 'Listening-consistency history (no account needed)'],
+            ['Next', 'Sponsor deck and monthly community experiment'],
+            ['Next', 'More research notes with primary sources'],
+          ].map(([state, label]) => (
+            <li key={label} className="flex items-start gap-2">
+              <span
+                className={`mt-0.5 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded ${
+                  state === 'Done' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-purple-500/15 text-purple-300'
+                }`}
+              >
+                {state}
+              </span>
+              <span>{label}</span>
+            </li>
+          ))}
         </ul>
       </section>
 
