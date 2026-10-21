@@ -573,6 +573,7 @@
     var pendingStories = state.stories.filter(function (s) { return !s.published; }).length;
     var pendingReviews = state.reviews.filter(function (r) { return !r.approved; }).length;
     var newIdeas = state.suggestions.filter(function (s) { return s.status === "new"; }).length;
+    var newLeads = state.leads.filter(function (l) { return l.status === "new"; }).length;
     var approvedReviews = state.reviews.filter(function (r) { return r.approved; });
     var avg = approvedReviews.length
       ? (approvedReviews.reduce(function (a, r) { return a + r.rating; }, 0) / approvedReviews.length).toFixed(1)
@@ -583,13 +584,15 @@
       statCard(pendingStories, "Stories waiting", pendingStories ? "warn" : "") +
       statCard(pendingReviews, "Reviews waiting", pendingReviews ? "warn" : "") +
       statCard(newIdeas, "New suggestions", newIdeas ? "warn" : "") +
+      statCard(newLeads, "New sponsor leads", newLeads ? "warn" : "") +
       statCard(avg, "Average rating", "") +
       statCard(state.stories.filter(function (s) { return s.published; }).length, "Published stories", "");
 
     $("attention").innerHTML =
       '<div class="card"><strong>' + pendingStories + '</strong> ' + (pendingStories === 1 ? "story needs" : "stories need") + ' review. <div style="margin-top:10px"><button class="btn small" data-goto="stories">Open stories</button></div></div>' +
       '<div class="card"><strong>' + pendingReviews + '</strong> ' + (pendingReviews === 1 ? "review needs" : "reviews need") + ' approval. <div style="margin-top:10px"><button class="btn small" data-goto="reviews">Open reviews</button></div></div>' +
-      '<div class="card"><strong>' + newIdeas + '</strong> new ' + (newIdeas === 1 ? "idea" : "ideas") + ' on the public board. <div style="margin-top:10px"><button class="btn small" data-goto="suggestions">Open board</button></div></div>';
+      '<div class="card"><strong>' + newIdeas + '</strong> new ' + (newIdeas === 1 ? "idea" : "ideas") + ' on the public board. <div style="margin-top:10px"><button class="btn small" data-goto="suggestions">Open board</button></div></div>' +
+      '<div class="card"><strong>' + newLeads + '</strong> new sponsor ' + (newLeads === 1 ? "enquiry" : "enquiries") + '. <div style="margin-top:10px"><button class="btn small" data-goto="leads">Open leads</button></div></div>';
 
     Array.prototype.forEach.call($("attention").querySelectorAll("[data-goto]"), function (b) {
       b.addEventListener("click", function () { setTab(b.dataset.goto); });
