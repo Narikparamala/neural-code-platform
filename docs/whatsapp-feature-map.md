@@ -98,7 +98,7 @@ a messenger.
 | Invite link | `?circle=CODE` deep link auto-joins after sign-in | Link can be copied from the circle panel |
 | Shared object | Attach one of your presets to a message; recipient taps to load it in the lab | This is the core “content lives in the conversation” idea |
 | Unread state | `last_read_at` per member; marked read when the thread opens | Unread badge UI is a next step |
-| Exit controls | Leave circle; owners are told to transfer/delete first | Reporting/blocking is a next step |
+| Exit controls | Leave circle; owners can delete the circle, removing its chat and memberships | Owner transfer is a next step |
 | Moderation | RLS + admin role + review queues for public reviews | No fake engagement metrics |
 | Presence | Not implemented | Avoids pressure and surveillance; can add opt-in later |
 | E2E encryption | Not claimed | We use TLS + Supabase RLS; we must never imply E2E |
@@ -178,6 +178,6 @@ mode, score, or profile stats. They never include health or performance claims.
 2. Real-time message updates (Supabase Realtime) instead of polling.
 3. Report/block controls and an admin moderation queue for circle messages.
 4. Preset revisions and “remix” attribution.
-5. Owner transfer / circle deletion flow.
+5. Owner transfer (circle deletion is implemented) and a public moderation log.
 6. Optional avatar upload with Supabase Storage.
 7. Weekly digest email of new public presets (opt-in only).
