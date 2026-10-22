@@ -469,11 +469,8 @@ const FrequencyLab: React.FC<FrequencyLabProps> = ({ onSessionUpdate }) => {
   ];
 
   useEffect(() => {
-    const initAudio = async () => {
-      await audioEngine.initialize();
-    };
-    initAudio();
-
+    // The audio context is created on the first Play (a user gesture). Creating it on
+    // mount can leave a suspended context behind and make later plays build a second one.
     return () => {
       audioEngine.destroy();
     };
