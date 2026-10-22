@@ -77,10 +77,13 @@ change their display name, handle and bio.
 
 - **Shared presets** — Rate, Place and Frequency Labs have **Save as preset**. Public presets can
   be filtered by lab, sorted by newest / rating / plays, liked, reviewed (one review per person,
-  1–5 stars) and loaded back into the lab with **Use in lab**.
+  1–5 stars) and loaded back into the lab with **Use in lab**. Four official starter presets are
+  published by the project account and marked “Starter preset”; they are real configurations, and
+  their play/rating counts start at zero like every other preset.
 - **Circles** — small public or private groups. Owners get an invite code and link
   (`?circle=CODE`), members get a chronological chat, and any message can carry one of the
-  sender's presets as an attachment. Messages are visible only to members.
+  sender's presets as an attachment. Messages are visible only to members. Owners can delete a
+  circle (removing its chat and memberships); other members can leave.
 - **Sessions and streaks** — playback of 10+ seconds records a private session, updates total
   minutes and advances the daily streak. Only the owner can read their history.
 - **Share cards** — a 1080×1350 PNG generated in the browser with only the visible session or
@@ -120,14 +123,21 @@ and the postal address in `POSTAL_ADDRESS`.
 
 ## Deploy
 
-- **Primary:** https://neural-code-platform.vercel.app/ — every push to `main` runs
+- **Production:** https://neural-code-platform.vercel.app/ — every push to `main` runs
   `.github/workflows/vercel.yml` (prebuilt Vercel deploy).
-- **Mirror:** https://narikparamala.github.io/neural-code-platform/ — `.github/workflows/deploy.yml`
-  publishes the same build to GitHub Pages.
+- There is deliberately no GitHub Pages mirror. The project is published on Vercel only so a
+  shared link does not expose the maintainer’s GitHub profile. See “Why Vercel, not GitHub Pages”
+  below.
 
-Vercel builds from the repository root, so the base path is `/`; GitHub Pages uses
-`/neural-code-platform/`. `vite.config.ts` detects `VERCEL` automatically. Set `GITHUB_PAGES=false`
-to force a root-domain build locally.
+Vercel builds from the repository root, so the base path is `/`. `vite.config.ts` detects `VERCEL`
+automatically. Set `GITHUB_PAGES=false` to force a root-domain build locally if you reuse the
+config for a static export.
+
+### Why Vercel, not GitHub Pages
+
+The site is free to host on Vercel. A GitHub Pages URL contains the account name
+(`<account>.github.io/...`), which would make the maintainer’s GitHub profile easy to find from any
+shared link. Publishing only on Vercel keeps the public URL focused on the project.
 
 ## Safety
 
