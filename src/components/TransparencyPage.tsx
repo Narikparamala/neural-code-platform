@@ -195,6 +195,16 @@ export default function TransparencyPage({ onNavigate }: { onNavigate?: (lab: st
             audio assets, video editing time, accessibility work and future listening studies &mdash;
             never for locked safety information or artificial urgency.
           </p>
+          <p className="text-sm text-gray-400 mt-3">
+            <strong className="text-gray-200">Source access.</strong> The codebase is shared with
+            sponsors, reviewers and researchers on request. The public site deliberately does not
+            link to the maintainer’s personal GitHub account, so sharing a project link does not
+            expose that profile. Email{' '}
+            <a className="text-purple-300 underline" href="mailto:narikparamala@gmail.com?subject=CosmicSpirit0%20source%20request">
+              narikparamala@gmail.com
+            </a>{' '}
+            with “source request” and what you want to review.
+          </p>
           <div className="flex flex-wrap gap-3 mt-4">
             <a
               href={settings.support_url}

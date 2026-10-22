@@ -140,7 +140,12 @@ const ConnectPage: React.FC = () => {
           only after review.
         </p>
         <div className="flex flex-wrap justify-center gap-4">
-          <span className="px-4 py-2 bg-purple-600/20 rounded-full text-sm">Open source</span>
+          <a
+            href="mailto:narikparamala@gmail.com?subject=CosmicSpirit0%20source%20request"
+            className="px-4 py-2 bg-purple-600/20 rounded-full text-sm hover:bg-purple-600/30"
+          >
+            Source on request
+          </a>
           <span className="px-4 py-2 bg-blue-600/20 rounded-full text-sm">No account needed</span>
           <span className="px-4 py-2 bg-green-600/20 rounded-full text-sm">Moderated stories</span>
           <span className="px-4 py-2 bg-yellow-600/20 rounded-full text-sm">Free to use</span>

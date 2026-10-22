@@ -34,8 +34,9 @@ const SponsorshipPage: React.FC<{ onNavigate?: (lab: string) => void }> = ({ onN
     },
     {
       icon: Users,
-      title: 'Free and open source',
-      description: 'The code and the running costs are public. Community submissions are moderated by a named maintainer.'
+      title: 'Free to use, source on request',
+      description:
+        'The running costs are published. The code is shared with sponsors, reviewers and researchers on request, and community submissions are moderated by a named maintainer.'
     }
   ];
 
@@ -446,7 +447,7 @@ const SponsorshipPage: React.FC<{ onNavigate?: (lab: string) => void }> = ({ onN
             free for everyone.
           </p>
           <div className="flex flex-wrap justify-center gap-4 text-sm">
-            <span className="px-3 py-1 bg-green-600/20 rounded-full">100% Open Source</span>
+            <span className="px-3 py-1 bg-green-600/20 rounded-full">Source on request</span>
             <span className="px-3 py-1 bg-blue-600/20 rounded-full">No Ads</span>
             <span className="px-3 py-1 bg-purple-600/20 rounded-full">Community Driven</span>
             <span className="px-3 py-1 bg-yellow-600/20 rounded-full">Research Focused</span>
